@@ -301,8 +301,8 @@ func ClickZnxFunc(id int64) {
 func SendZnx(jumpNumber int, jumpText string) {
 	rand := request.RandmoNie()
 	timestamp := request.GetNowTime()
-	znxTitle := "测试带图的站内信" + strconv.FormatInt(timestamp, 10)
-	result := CreateMessage(znxTitle, 1, 3, jumpNumber, jumpText, 1, "这是内容", 1, rand, timestamp, "这是标题")
+	znxTitle := "自动化生成的站内信" + strconv.FormatInt(timestamp, 10)
+	result := CreateMessage(znxTitle, 1, 3, jumpNumber, jumpText, 1, "这是内容", 1, rand, timestamp, znxTitle)
 	headMap, base_url := GetHeaderMap()
 
 	api := "/api/Inmail/Add"
