@@ -63,6 +63,6 @@ func main() {
 	// userAmount := "918281997445" // 需要添加的用户账号
 	// // deskRun(userAmount)  // 前台登录并进行了投注
 	// adminRun(userAmount, 778)
-	adminUser.QueryZnxFunc()
+	adminUser.SendOneZnx()
 
 }

@@ -1,10 +1,13 @@
 package adminUser
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"project/common"
 	"project/request"
 	"project/userApi/adminUser"
+	"strconv"
 )
 
 // Translation represents the translations array in the JSON
@@ -180,12 +183,12 @@ const (
 )
 
 // 获取请求头的map
-func GetHeaderMap()(map[string]interface{},string){
+func GetHeaderMap() (map[string]interface{}, string) {
 	// 请求头
 	token, err := adminUser.GetToken()
 	if err != nil {
 		fmt.Println("添加站内信的token获取失败", err)
-		return
+		return nil, ""
 	}
 	deskA := &common.AdminHeaderAuthorizationConfig2{}
 	base_url := common.ADMIN_SYSTEM_url
@@ -193,17 +196,114 @@ func GetHeaderMap()(map[string]interface{},string){
 	headMap, err := common.AssignSliceToStructMap(deskA, desSlice)
 	if err != nil {
 		fmt.Println("headerMap获取失败", err)
-		return nil,""
+		return nil, ""
 	}
-	return headMap,base_url
+	return headMap, base_url
+}
+
+type QueryZnx struct {
+	PageNo    any `json:"pageNo"`
+	PgeSize   any `json:"pageSize"`
+	OrderBy   any `json:"orderBy"`
+	Random    any `json:"Random"`
+	Language  any `json:"language"`
+	Signature any `json:"signature"`
+	Timestamp any `json:"timestamp"`
+}
+
+type Root struct {
+	Data Data `json:"data"`
+}
+
+type Data struct {
+	List []Notification `json:"list"`
+}
+
+type Notification struct {
+	ID int64 `json:"id"`
+}
+
+// 返回一个id
+func QueryZnxFunc() int64 {
+	randmo := request.RandmoNie()
+	timestamp := request.GetNowTime()
+	// 获取请求头
+	headMap, base_url := GetHeaderMap()
+	api := "/api/Inmail/GetPageList"
+	query := &QueryZnx{}
+	resultList := []interface{}{1, 20, "Desc", randmo, "en", "", timestamp}
+	resultMap, err := common.AssignSliceToStructMap(query, resultList)
+	if err != nil {
+		fmt.Println("站内信查询的结构体初始化报错", err)
+		return 1
+	}
+
+	resp, _, err := request.PostRequestCofig(resultMap, base_url, api, headMap)
+	if err != nil {
+		fmt.Println("站内信的请求失败", err)
+	}
+	// fmt.Println("站内信的查询响应内容", string(resp))
+	// 解析 JSON
+	var root Root
+	err = json.Unmarshal([]byte(resp), &root)
+	if err != nil {
+		log.Fatalf("Error unmarshaling JSON: %v", err)
+	}
+
+	// 提取所有 id
+	var ids []int64
+	for _, notification := range root.Data.List {
+		ids = append(ids, notification.ID)
+	}
+
+	// 打印 id 列表
+	return ids[0]
+}
+
+// 点击启用
+type ClickZnxStruct struct {
+	State     any `json:"state"`
+	Id        any `json:"id"`
+	Random    any `json:"random"`
+	Language  any `json:"language"`
+	Signature any `json:"signature"`
+	Timestamp any `json:"timestamp"`
+}
+
+/*
+传入要点击的id，才能启用
+*
+*/
+func ClickZnxFunc(id int64) {
+	randmo := request.RandmoNie()
+	timestamp := request.GetNowTime()
+	api := "/api/Inmail/UpdateState"
+	// 获取请求头和base_url
+	headerMap, base_url := GetHeaderMap()
+	// 初始化结构体
+	clickZnx := &ClickZnxStruct{}
+	resultList := []interface{}{1, id, randmo, "en", "", timestamp}
+	resultMap, err := common.AssignSliceToStructMap(clickZnx, resultList)
+	if err != nil {
+		fmt.Println("点击站内信的启用按钮请求结构体失败", err)
+		return
+	}
+
+	resp, _, err := request.PostRequestCofig(resultMap, base_url, api, headerMap)
+	if err != nil {
+		fmt.Println("点击站内信的启用按钮请求失败", err)
+		return
+	}
+	fmt.Println("点击站内信的启用按钮请求", string(resp))
 }
 
 // 需要提供跳转类型，和跳转文字
 func SendZnx(jumpNumber int, jumpText string) {
 	rand := request.RandmoNie()
 	timestamp := request.GetNowTime()
-	result := CreateMessage("测试带图的站内信333", 1, 3, jumpNumber, jumpText, 1, "这是内容", 1, rand, timestamp, "这是标题")
-	headMap,base_url  := GetHeaderMap()
+	znxTitle := "测试带图的站内信" + strconv.FormatInt(timestamp, 10)
+	result := CreateMessage(znxTitle, 1, 3, jumpNumber, jumpText, 1, "这是内容", 1, rand, timestamp, "这是标题")
+	headMap, base_url := GetHeaderMap()
 
 	api := "/api/Inmail/Add"
 	resp, _, err := request.PostRequestCofig(result, base_url, api, headMap)
@@ -213,49 +313,14 @@ func SendZnx(jumpNumber int, jumpText string) {
 	fmt.Println("站内信响应内容", string(resp))
 }
 
-// 查询站内信
-{"pageNo":1,"pageSize":20,"orderBy":"Desc","random":467000759459,"language":"zh","signature":"CA5C51D03BB2336B6B5820ED62B8B32F","timestamp":1757139743}
-
-// type QueryZnx struct {
-// 	PageNo int8 `json:"pageNo"`
-// 	PgeSize int `json:"pageSize"`
-// 	OrderBy string `json:"orderBy"`
-// 	Random int64	`json:"Random"`
-// 	Language string `json:"language"`
-// 	Signature string `json:"signature"`
-// 	Timestamp int64 `json:"timestamp"`
-// }
-
-type QueryZnx struct {
-	PageNo any `json:"pageNo"`
-	PgeSize any `json:"pageSize"`
-	OrderBy any `json:"orderBy"`
-	Random any	`json:"Random"`
-	Language any `json:"language"`
-	Signature any `json:"signature"`
-	Timestamp any `json:"timestamp"`
-}
-
-// 返回一个id
-func QueryZnxFunc() int{
-	randmo := request.RandmoNie()
-	timestamp := request.GetNowTime()
-	// 获取请求头
-	headMap,base_url  := GetHeaderMap()
-	api := "/api/Inmail/GetPageList"
-	query := &QueryZnx{}
-	resultList := []interface{}{1,20,"Desc",randmo,"en","",timestamp}
-	resultMap,err := common.AssignSliceToStructMap(query,resultList)
-	if err != nil {
-		fmt.Println("站内信查询的结构体初始化报错",err)
-		return 
+func SendOneZnx() {
+	// 发送站内信
+	SendZnx(1, "跳转文字")
+	// 获取id
+	id := QueryZnxFunc()
+	if id > 0 {
+		ClickZnxFunc(id)
 	}
-	fmt.Println(resultMap)
-	// resp, _, err := request.PostRequestCofig(result, base_url, api, headMap)
-	// if err != nil {
-	// 	fmt.Println("站内信的请求失败", err)
-	// }
-	// fmt.Println("站内信的查询响应内容", string(resp))
 
 }
 
