@@ -7,7 +7,8 @@ import (
 	"project/common"
 	payMoneyapi "project/payMoneyApi"
 	userApi "project/userApi/adminUser"
-	adminUser "project/userApi/adminUser/activeModle"
+	"project/userApi/adminUser/actingModle/actingFy"
+	_ "project/userApi/adminUser/activeModle"
 	"project/userApi/deskApi"
 )
 
@@ -63,6 +64,7 @@ func main() {
 	// userAmount := "918281997445" // 需要添加的用户账号
 	// // deskRun(userAmount)  // 前台登录并进行了投注
 	// adminRun(userAmount, 778)
-	adminUser.SendOneZnx()
-
+	// adminUser.SendOneZnx()
+	// actingFy.RunInvite()
+	actingFy.SendVerifiyCodeFunc("91919081997668")
 }

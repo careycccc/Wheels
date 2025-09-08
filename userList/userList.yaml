@@ -1,0 +1,42 @@
+layers:
+    - level: 1
+      users:
+        - CODE_1
+        - CODE_3
+        - CODE_4
+        - CODE_5
+        - CODE_6
+    - level: 2
+      users:
+        - CODE_7
+        - CODE_8
+        - CODE_9
+        - CODE_10
+        - CODE_11
+        - CODE_12
+        - CODE_13
+        - CODE_14
+    - level: 3
+      users:
+        - CODE_15
+        - CODE_16
+        - CODE_17
+        - CODE_18
+        - CODE_19
+    - level: 4
+      users:
+        - CODE_20
+        - CODE_21
+        - CODE_22
+        - CODE_23
+        - CODE_24
+        - CODE_25
+    - level: 5
+      users:
+        - CODE_26
+        - CODE_27
+        - CODE_28
+        - CODE_29
+        - CODE_30
+        - CODE_31
+        - CODE_32

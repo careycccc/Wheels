@@ -67,7 +67,7 @@ validType int,     默认值1
 jumpType int,  跳转类型
 jumpPage int,  跳转页面
 jumpButtonText string  跳转的按钮文字
-targetType int, 跳转目标
+targetType int, 跳转目标 ，接收对象
 content string,  站内信的内容
 sendType int,  发送类型
 *
@@ -302,7 +302,7 @@ func SendZnx(jumpNumber int, jumpText string) {
 	rand := request.RandmoNie()
 	timestamp := request.GetNowTime()
 	znxTitle := "自动化生成的站内信" + strconv.FormatInt(timestamp, 10)
-	result := CreateMessage(znxTitle, 1, 3, jumpNumber, jumpText, 1, "这是内容", 1, rand, timestamp, znxTitle)
+	result := CreateMessage(znxTitle, 11, 32, jumpNumber, jumpText, 13, "这是内容", 14, rand, timestamp, znxTitle)
 	headMap, base_url := GetHeaderMap()
 
 	api := "/api/Inmail/Add"

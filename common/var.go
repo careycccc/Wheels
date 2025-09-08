@@ -102,6 +102,13 @@ type DeskHeaderConfig struct {
 	AdminHeaderConfig
 }
 
+type DeskHeaderConfig2 struct {
+	TenantId  any
+	Domainurl any
+	Referer   any
+	Origin    any
+}
+
 func NewDeskHeaderConfig() *DeskHeaderConfig {
 	header := NewAdminHeaderConfig()
 	return &DeskHeaderConfig{
@@ -194,6 +201,8 @@ const (
 	WMG_H5           = "https://h5.wmgametransit.com"
 	LOTTERY_H5       = "https://sit-lotteryh5.wmgametransit.com"
 	ADMIN_SYSTEM_url = "https://sit-tenantadmin-3003.mggametransit.com"
+	REGISTER_url     = "https://sit-3003-register.mggametransit.com" // 注册地址
+	SIT_WEB_API      = "https://sit-webapi.mggametransit.com"
 )
 
 // AssignSliceToStructMap 将切片的值一一对应赋值到结构体字段并返回 map[string]interface{}
