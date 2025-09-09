@@ -207,6 +207,7 @@ const (
 
 // AssignSliceToStructMap 将切片的值一一对应赋值到结构体字段并返回 map[string]interface{}
 // structObj结构体对象，sliceObj 切片对象
+// 含有 Authorization
 func AssignSliceToStructMap(structObj interface{}, sliceObj interface{}) (map[string]interface{}, error) {
 	// 初始化结果 map
 	result := make(map[string]interface{})
@@ -330,4 +331,98 @@ func InitStructToMap(strct interface{}, values []interface{}) map[string]interfa
 	}
 
 	return result
+}
+
+// StructToMap 将结构体初始化并将切片值映射到 map   // 可以解决嵌套结构体
+func StructToMap(structType interface{}, slice []interface{}) (map[string]interface{}, error) {
+	result := make(map[string]interface{})
+
+	// 获取结构体类型
+	val := reflect.ValueOf(structType)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	if val.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("structType must be a struct or struct pointer")
+	}
+
+	t := val.Type()
+	sliceIndex := 0
+
+	fmt.Printf("Processing struct with %d fields, slice length: %d\n", t.NumField(), len(slice))
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		fieldName := field.Name
+		fieldType := field.Type
+
+		// 检查字段是否可导出（PkgPath 非空表示不可导出）
+		if field.PkgPath != "" {
+			fmt.Printf("Skipping unexported field %s\n", fieldName)
+			continue
+		}
+
+		// 处理嵌套结构体
+		if fieldType.Kind() == reflect.Struct {
+			if sliceIndex >= len(slice) {
+				fmt.Printf("Slice exhausted at nested field %s, assigning nil\n", fieldName)
+				result[fieldName] = nil
+				continue
+			}
+			nestedMap, err := StructToMap(reflect.New(fieldType).Interface(), slice[sliceIndex:])
+			if err != nil {
+				return nil, fmt.Errorf("error in nested struct %s: %v", fieldName, err)
+			}
+			result[fieldName] = nestedMap
+			continue
+		}
+
+		// 处理基本类型字段
+		if sliceIndex >= len(slice) {
+			fmt.Printf("Slice exhausted at field %s, assigning nil\n", fieldName)
+			result[fieldName] = nil
+			continue
+		}
+
+		sliceVal := reflect.ValueOf(slice[sliceIndex])
+		if !sliceVal.IsValid() {
+			fmt.Printf("Nil slice value at index %d for field %s\n", sliceIndex, fieldName)
+			result[fieldName] = nil
+			sliceIndex++
+			continue
+		}
+
+		// 检查类型兼容性
+		if sliceVal.Type().ConvertibleTo(fieldType) {
+			result[fieldName] = sliceVal.Convert(fieldType).Interface()
+			fmt.Printf("Assigned %v to field %s\n", sliceVal.Interface(), fieldName)
+		} else {
+			return nil, fmt.Errorf("cannot assign %v to field %s of type %v", sliceVal.Type(), fieldName, fieldType)
+		}
+		sliceIndex++
+	}
+
+	return result, nil
+}
+
+// FlattenMap 将嵌套的 map[string]interface{} 平铺为一层 map，忽略嵌套路径
+func FlattenMap(nestedMap map[string]interface{}) map[string]interface{} {
+	flatMap := make(map[string]interface{})
+
+	for key, value := range nestedMap {
+		// 如果值是嵌套 map，递归平铺
+		if nested, ok := value.(map[string]interface{}); ok {
+			// 将嵌套 map 的键值对直接合并到 flatMap
+			for nestedKey, nestedValue := range FlattenMap(nested) {
+				flatMap[nestedKey] = nestedValue // 后覆盖前
+				fmt.Printf("Flattened key %s with value %v\n", nestedKey, nestedValue)
+			}
+		} else {
+			// 直接赋值非 map 值
+			flatMap[key] = value
+			fmt.Printf("Flattened key %s with value %v\n", key, value)
+		}
+	}
+
+	return flatMap
 }

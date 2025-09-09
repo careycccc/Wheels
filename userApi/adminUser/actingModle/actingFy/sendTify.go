@@ -6,16 +6,6 @@ import (
 	"project/request"
 )
 
-//	{
-//	  "verifyCodeType": 1,
-//	  "phoneOrEmail": "91919081997668",
-//	  "codeType": 18,
-//	  "language": "en",
-//	  "random": 146490582958,
-//	  "signature": "0934A0D91D949016D6098489CAE30160",
-//	  "timestamp": 1757308979
-//	}
-//
 // 发送验证码
 type SendVerifiyCodeStruct struct {
 	VerifyCodeType any `json:"verifyCodeType"`
@@ -27,7 +17,7 @@ type SendVerifiyCodeStruct struct {
 	Timestamp      any `json:"timestamp"`
 }
 
-// 返回验证码
+// 传入用户账号加区号 返回验证码
 func SendVerifiyCodeFunc(userName string) string {
 	random := request.RandmoNie()
 	timestamp := request.GetNowTime()
