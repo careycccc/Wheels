@@ -1,7 +1,6 @@
 package deskApi
 
 import (
-	"encoding/json"
 	"fmt"
 	"project/common"
 	"project/request"
@@ -46,10 +45,11 @@ func RegisterFunc(userName, verifyCode, inviteCode string) {
 	random := request.RandmoNie()
 	timestamp := request.GetNowTime()
 	generate := utils.GenerateCryptoRandomString(32)
-	RegisterList := []interface{}{userName, verifyCode, inviteCode, generate, true, timestamp * 1000, "en", random, "", timestamp}
+	RegisterList := []interface{}{userName, verifyCode, inviteCode, generate, true, timestamp, "en", random, "", timestamp}
 	registerMap, _ := InitializeRegisterStruct(RegisterList)
 	register_url := common.REGISTER_url
-	registreList := []interface{}{register_url, register_url, register_url}
+	registreList := []interface{}{"3003", register_url, register_url, register_url}
+	// 初始化请求头
 	headerconfig := &common.DeskHeaderConfig2{}
 	headerMap := common.InitStructToMap(headerconfig, registreList)
 	resp, _, err := request.PostRequestCofig(registerMap, base_url, api, headerMap)
@@ -57,7 +57,7 @@ func RegisterFunc(userName, verifyCode, inviteCode string) {
 		fmt.Println(err)
 		return
 	}
-	println(string(resp))
+	println("注册的结", string(resp))
 }
 
 func InitializeRegisterStruct(data []interface{}) (map[string]interface{}, error) {
@@ -69,7 +69,7 @@ func InitializeRegisterStruct(data []interface{}) (map[string]interface{}, error
 	// Create TrackStruct
 	track := TrackStruct{
 		IsTrusted: data[4].(bool),
-		Vts:       data[5].(int64),
+		Vts:       data[5].(int64), // Empty string from slice
 	}
 
 	// Create RegisterStruct
@@ -87,13 +87,20 @@ func InitializeRegisterStruct(data []interface{}) (map[string]interface{}, error
 
 	// Convert to map[string]interface{}
 	result := make(map[string]interface{})
-	bytes, err := json.Marshal(register)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal struct: %v", err)
-	}
-
-	if err := json.Unmarshal(bytes, &result); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal to map: %v", err)
+	// Manually populate the map to control number formatting
+	result["userName"] = register.UserName
+	result["verifyCode"] = register.VerifyCode
+	result["inviteCode"] = register.InviteCode
+	result["registerFingerprint"] = register.RegisterFingerprint
+	result["random"] = register.Random // int64, no scientific notation
+	result["language"] = register.Language
+	result["signature"] = register.Signature
+	result["timestamp"] = register.Timestamp // int64, no scientific notation
+	result["isTrusted"] = register.IsTrusted
+	if register.Vts != 0 {
+		result["_vts"] = register.Vts // Only include if non-empty due to omitempty
+	} else {
+		result["_vts"] = "" // Explicitly set to empty string as per slice
 	}
 
 	return result, nil

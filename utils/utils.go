@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -211,4 +212,18 @@ func GenerateCryptoRandomString(length int) string {
 	}
 	// fmt.Println("本次指纹", string(bytes))
 	return string(bytes)
+}
+
+// 随机生成用户
+func RandmoUserCount() string {
+	// 设置随机种子
+	rand.Seed(time.Now().UnixNano())
+
+	// 生成10位随机数字（因为91占了2位）
+	randomNum := rand.Intn(10000000000) // 0到9999999999
+	// 格式化为10位字符串，前面补0
+	randomStr := fmt.Sprintf("%010d", randomNum)
+
+	// 拼接91开头
+	return "91" + randomStr
 }

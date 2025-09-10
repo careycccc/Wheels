@@ -41,6 +41,6 @@ func SendVerifiyCodeFunc(userName string) string {
 		fmt.Println(err)
 		return ""
 	}
-	fmt.Println(string(resp))
+	fmt.Printf("%v,发送验证码成功%v", userName, string(resp))
 	return ""
 }

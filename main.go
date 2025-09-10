@@ -7,8 +7,11 @@ import (
 	"project/common"
 	payMoneyapi "project/payMoneyApi"
 	userApi "project/userApi/adminUser"
+	"project/userApi/adminUser/actingModle/actingFy"
 	_ "project/userApi/adminUser/activeModle"
 	"project/userApi/deskApi"
+	"project/utils"
+	"time"
 )
 
 /*
@@ -59,15 +62,33 @@ func deskRun(userAmount string) {
 	}
 }
 
+// 邀请转盘邀请下一级
+
+func RunWhille(userAmount string, yqCode string) {
+	// 发送验证码
+	actingFy.SendVerifiyCodeFunc(userAmount) // 发送验证码
+	// 获取验证码
+	time.Sleep(time.Second * 1)
+	verifyCode := actingFy.QueryTifyFunc2() //获取验证码
+	fmt.Println("当前的验证码", verifyCode)
+	// 发送注册
+	deskApi.RegisterFunc(userAmount, verifyCode, yqCode)
+	// 后台登录后进行充值
+	time.Sleep(time.Second * 1)
+	adminRun(userAmount, 100)
+}
+
 func main() {
-	// userAmount := "918281997445" // 需要添加的用户账号
+	// userAmount := "919091995116" // 需要添加的用户账号
+	userAmount := utils.RandmoUserCount()
+	RunWhille(userAmount, "IW_6TXBN5N")
 	// deskRun(userAmount)  // 前台登录并进行了投注
 	// adminRun(userAmount, 778)  // 后台进行登录和人工充值
 	// adminUser.SendOneZnx() // 发送站内信
 	// actingFy.RunInvite()
-	// actingFy.SendVerifiyCodeFunc("91919081997668")  // 发送验证码
-	// actingFy.QueryTifyFunc("919091997113")     //获取验证码
+	// actingFy.SendVerifiyCodeFunc(userAmount) // 发送验证码
+	// verifyCode := actingFy.QueryTifyFunc2() //获取验证码
+	// fmt.Println("当前的验证码", verifyCode)
 	// actingFy.GetInviteCodeFunc("919091997113") // 获取邀请码
-	deskApi.RegisterFunc("918281997445", "614377", "YDWY52N")
-
+	// deskApi.RegisterFunc(userAmount, "214537", "IW_YGN5QLN")
 }
