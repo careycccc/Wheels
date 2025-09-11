@@ -52,12 +52,11 @@ func RegisterFunc(userName, verifyCode, inviteCode string) {
 	// 初始化请求头
 	headerconfig := &common.DeskHeaderConfig2{}
 	headerMap := common.InitStructToMap(headerconfig, registreList)
-	resp, _, err := request.PostRequestCofig(registerMap, base_url, api, headerMap)
+	_, _, err := request.PostRequestCofig(registerMap, base_url, api, headerMap)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	println("注册的结", string(resp))
 }
 
 func InitializeRegisterStruct(data []interface{}) (map[string]interface{}, error) {

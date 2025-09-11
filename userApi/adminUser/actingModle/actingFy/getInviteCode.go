@@ -33,11 +33,7 @@ func GetInviteCodeFunc(userName string) (string, int64) {
 	queryList := []interface{}{userName, 1, 20, "Desc", randmo, "en", "", timestamp}
 	queryMap, _ := common.StructToMap(query, queryList)
 	// 请求头
-	token, err := adminUser.GetToken()
-	if err != nil {
-		fmt.Println(err)
-		return "", -1
-	}
+	token := adminUser.GetToken()
 	base_url := common.ADMIN_SYSTEM_url
 	headerStruct := &common.AdminHeaderAuthorizationConfig2{}
 	headerList := []interface{}{base_url, base_url, base_url, token}

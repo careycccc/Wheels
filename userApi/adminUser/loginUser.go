@@ -2,7 +2,6 @@ package adminUser
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"project/common"
 	"project/request"
@@ -31,7 +30,7 @@ type Config struct {
 username 商户后台的账号
 pwd 商户后台密码
 */
-func Login(username, pwd string) error {
+func Login(username, pwd string) (string, error) {
 	api := "/api/Login/Login"
 	loginData := LoginRequest{
 		UserName:  username,
@@ -59,7 +58,7 @@ func Login(username, pwd string) error {
 	respBody, _, err := request.PostRequestCofig(paylaodSignature, base_url, api, headMap)
 	if err != nil {
 		fmt.Println(err)
-		return err
+		return "", err
 	}
 
 	// fmt.Printf("用户%v登录成功--------------------+\n", loginData.UserName)
@@ -68,23 +67,23 @@ func Login(username, pwd string) error {
 	error := json.Unmarshal([]byte(strResbody), &response)
 	if error != nil {
 		fmt.Println(error)
-		return error
+		return "", error
 	}
 	// fmt.Printf("登录结果%v", response)
 	token, err := utils.HandlerMap(strResbody, "token")
 	if err != nil {
 
-		return err
+		return "", err
 	}
-	config := Config{}
-	config.Token = token
-	errs := utils.WriteYAML(Token_addr_yaml_local, &config)
-	if errs != nil {
-		// fmt.Printf("token写入失败%v", errs)
-		err := errors.New("token写入失败")
-		fmt.Printf("%s", errs)
-		return err
-	}
-	fmt.Printf("token写入成功.......\n")
-	return nil
+	// config := Config{}
+	// config.Token = token
+	// errs := utils.WriteYAML(Token_addr_yaml_local, &config)
+	// if errs != nil {
+	// 	// fmt.Printf("token写入失败%v", errs)
+	// 	err := errors.New("token写入失败")
+	// 	fmt.Printf("%s", errs)
+	// 	return "",err
+	// }
+	// fmt.Printf("token写入成功.......\n")
+	return token, nil
 }

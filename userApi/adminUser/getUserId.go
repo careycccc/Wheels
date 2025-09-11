@@ -58,7 +58,7 @@ func GetUserApi(account string) int64 {
 		fmt.Printf("获取用户的userid失败")
 		return -1
 	}
-	fmt.Println("用户详情~~~~~~", string(resp))
+	// fmt.Println("用户详情~~~~~~", string(resp))
 	usrid, err := returnUserId(string(resp))
 	if err != nil {
 		fmt.Println(err)

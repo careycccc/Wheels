@@ -38,11 +38,7 @@ func QueryTifyFunc(userName string) string {
 	queryList := []interface{}{userName, 1, 20, "Desc", randmo, "en", "", timestamp}
 	queryMap, _ := common.StructToMap(query, queryList)
 	// 请求头
-	token, err := adminUser.GetToken()
-	if err != nil {
-		fmt.Println(err)
-		return ""
-	}
+	token := adminUser.GetToken()
 	base_url := common.ADMIN_SYSTEM_url
 	headerStruct := &common.AdminHeaderAuthorizationConfig2{}
 	headerList := []interface{}{base_url, base_url, base_url, token}
@@ -81,11 +77,7 @@ func QueryTifyFunc2() string {
 	queryList := []interface{}{1, 20, "Desc", randmo, "en", "", timestamp}
 	queryMap, _ := common.StructToMap(query, queryList)
 	// 请求头
-	token, err := adminUser.GetToken()
-	if err != nil {
-		fmt.Println(err)
-		return ""
-	}
+	token := adminUser.GetToken()
 	base_url := common.ADMIN_SYSTEM_url
 	headerStruct := &common.AdminHeaderAuthorizationConfig2{}
 	headerList := []interface{}{base_url, base_url, base_url, token}

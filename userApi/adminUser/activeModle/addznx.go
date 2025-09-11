@@ -185,13 +185,9 @@ const (
 // 获取请求头的map
 func GetHeaderMap() (map[string]interface{}, string) {
 	// 请求头
-	token, err := adminUser.GetToken()
-	if err != nil {
-		fmt.Println("添加站内信的token获取失败", err)
-		return nil, ""
-	}
 	deskA := &common.AdminHeaderAuthorizationConfig2{}
 	base_url := common.ADMIN_SYSTEM_url
+	token := adminUser.GetToken()
 	desSlice := []interface{}{base_url, base_url, base_url, token}
 	headMap, err := common.AssignSliceToStructMap(deskA, desSlice)
 	if err != nil {

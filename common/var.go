@@ -195,6 +195,14 @@ type DeskHeaderAstruct struct {
 	Authorization interface{}
 }
 
+type DeskHeaderAstruct2 struct {
+	TenantId      any
+	Referer       interface{}
+	Origin        interface{}
+	Domainurl     interface{}
+	Authorization interface{}
+}
+
 // url地址
 const (
 	PLANT_H5         = "https://sit-plath5-y1.mggametransit.com"
@@ -349,7 +357,7 @@ func StructToMap(structType interface{}, slice []interface{}) (map[string]interf
 	t := val.Type()
 	sliceIndex := 0
 
-	fmt.Printf("Processing struct with %d fields, slice length: %d\n", t.NumField(), len(slice))
+	// fmt.Printf("Processing struct with %d fields, slice length: %d\n", t.NumField(), len(slice))
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
@@ -395,7 +403,7 @@ func StructToMap(structType interface{}, slice []interface{}) (map[string]interf
 		// 检查类型兼容性
 		if sliceVal.Type().ConvertibleTo(fieldType) {
 			result[fieldName] = sliceVal.Convert(fieldType).Interface()
-			fmt.Printf("Assigned %v to field %s\n", sliceVal.Interface(), fieldName)
+			// fmt.Printf("Assigned %v to field %s\n", sliceVal.Interface(), fieldName)
 		} else {
 			return nil, fmt.Errorf("cannot assign %v to field %s of type %v", sliceVal.Type(), fieldName, fieldType)
 		}
@@ -415,12 +423,12 @@ func FlattenMap(nestedMap map[string]interface{}) map[string]interface{} {
 			// 将嵌套 map 的键值对直接合并到 flatMap
 			for nestedKey, nestedValue := range FlattenMap(nested) {
 				flatMap[nestedKey] = nestedValue // 后覆盖前
-				fmt.Printf("Flattened key %s with value %v\n", nestedKey, nestedValue)
+				// fmt.Printf("Flattened key %s with value %v\n", nestedKey, nestedValue)
 			}
 		} else {
 			// 直接赋值非 map 值
 			flatMap[key] = value
-			fmt.Printf("Flattened key %s with value %v\n", key, value)
+			// fmt.Printf("Flattened key %s with value %v\n", key, value)
 		}
 	}
 

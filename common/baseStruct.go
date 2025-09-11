@@ -2,7 +2,7 @@ package common
 
 //基础结构体
 type BaseStruct struct {
-	Random    int64  `json:"randmo"`
+	Random    int64  `json:"random"`
 	Language  string `json:"language"`
 	Signature string `json:"signature"`
 	Timestamp int64  `json:"timestamp"`
