@@ -2,12 +2,15 @@ package utils
 
 import (
 	"crypto/md5"
+	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"math/rand"
+	"math/big"
+	_ "math/rand"
 	"os"
 	"reflect"
 	"sort"
@@ -199,7 +202,7 @@ func HandlerMap(strResbody string, str string) (string, error) {
 	return token, nil
 }
 
-// 生成随机浏览器指纹
+// 生成随机浏览器指纹 ，设备号
 func GenerateCryptoRandomString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
 	bytes := make([]byte, length)
@@ -216,14 +219,46 @@ func GenerateCryptoRandomString(length int) string {
 
 // 随机生成用户
 func RandmoUserCount() string {
-	// 设置随机种子
-	rand.Seed(time.Now().UnixNano())
+	// 获取当前时间
+	now := time.Now()
+	// 获取当前月份，格式化为两位数（例如：03, 04, ...）
+	month := now.Format("01") // 使用"01"确保月份总是两位数
+	// 生成7位随机数字
+	randomDigits, err := rand.Int(rand.Reader, big.NewInt(10000000)) // 生成0到9999999之间的随机数
+	if err != nil {
+		return ""
+	}
+	// 将随机数转换为字符串，并确保为8位长度（例如：01234567）
+	randomStr := fmt.Sprintf("%08d", randomDigits)
+	// 组合月份和随机数字，确保总共10位数字
+	result := month + randomStr[1:] // 从randomStr的第2位开始拼接，确保总共10位数字，且前三位是月份
+	return "91" + result
+}
 
-	// 生成10位随机数字（因为91占了2位）
-	randomNum := rand.Intn(10000000000) // 0到9999999999
-	// 格式化为10位字符串，前面补0
-	randomStr := fmt.Sprintf("%010d", randomNum)
+// 随机生成一个数字
+func RandmoNumber(number int) int64 {
+	// 初始化随机数种子
+	var b [8]byte // 一个 int64 需要 8 个字节
+	_, err := rand.Read(b[:])
+	if err != nil {
+		panic(err) // 在实际应用中，应该优雅地处理错误
+	}
+	return int64(binary.BigEndian.Uint64(b[:]))
+}
 
-	// 拼接91开头
-	return "91" + randomStr
+// 随机生成 min max的数据
+func GenerateRandomInt(min, max int64) (int64, error) {
+	if min > max {
+		return 0, fmt.Errorf("min must be less than or equal to max")
+	}
+
+	// 生成一个大于等于0且小于max-min的随机数
+	randomInt, err := rand.Int(rand.Reader, big.NewInt(max-min))
+	if err != nil {
+		return 0, err
+	}
+
+	// 将随机数加上最小值，得到最终的随机数范围在[min, max]之间
+	randomInt.Add(randomInt, big.NewInt(min))
+	return randomInt.Int64(), nil
 }

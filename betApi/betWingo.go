@@ -21,9 +21,9 @@ type BetRequest struct {
 }
 
 type ResponseStruct struct {
-	Code        int8
+	Code        int
 	Msg         string
-	MsgCode     int8
+	MsgCode     int
 	ServiceTime int64
 }
 
@@ -37,8 +37,14 @@ issueNumber 期号
 token token对象
 */
 func BetWingo(gameCode string, amount, betMultiple int, betContent, issueNumber, token, username string) {
+	var apiArg string
+	if gameCode == "TrxWinGo_10M" {
+		apiArg = "TrxWinGoBet"
+	} else {
+		apiArg = "WinGoBet"
+	}
 	// 请求体地址
-	api := "/api/Lottery/WinGoBet"
+	api := "/api/Lottery/" + apiArg
 	// url := "https://sit-lotteryh5.wmgametransit.com"
 	url := common.LOTTERY_H5
 	// 参数化
@@ -65,5 +71,7 @@ func BetWingo(gameCode string, amount, betMultiple int, betContent, issueNumber,
 	msgcode := res.MsgCode
 	if code == 0 && msgcode == 0 {
 		fmt.Printf("%v在%v投注了%v成功", username, gameCode, amount*betMultiple)
+	} else {
+		fmt.Println(res)
 	}
 }

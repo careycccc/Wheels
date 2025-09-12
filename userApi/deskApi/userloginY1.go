@@ -72,6 +72,6 @@ func UserloginY1(username, password string) (string, error) {
 		return "寻找token失败", err
 	}
 	// fmt.Printf("token==>%v\n", token)
-	fmt.Printf("%s登录成功--------------------------------------------", username)
+	fmt.Printf("%s登录成功--------------------------------------------\n", username)
 	return token, nil
 }

@@ -40,7 +40,7 @@ func InitConfig() {
 			fmt.Println(errs)
 			return
 		}
-		// fmt.Printf("token写入成功.......\n")
+		fmt.Printf("token写入成功.......\n")
 	})
 }
 
@@ -95,6 +95,7 @@ func GetHeaderUrl() (map[string]interface{}, string) {
 	base_url := baseurl.ConfigUrlInit().ADMIN_URL
 	var head common.AdminHeaderAuthorizationConfig
 	token := GetToken()
+	time.Sleep(time.Millisecond * 300)
 	headMap := head.AdminHeaderAuthorizationFunc(token)
 	return headMap, base_url
 }

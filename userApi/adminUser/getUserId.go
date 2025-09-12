@@ -28,7 +28,9 @@ type Useridstruct struct {
 	} `json:"data"`
 }
 
+// 输入用户电话号码返回userid  记得传入的一定要加入区号
 func GetUserApi(account string) int64 {
+	fmt.Println("返回uerid", account)
 	api := "/api/Users/GetPageList"
 	userapiInit := getUserApistruct{
 		Account:   account,

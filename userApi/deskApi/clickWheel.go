@@ -10,17 +10,14 @@ import (
 // 定义结构体来映射 JSON 数据
 type ClickResponse struct {
 	Data struct {
-		IsFirstInvitedWheel bool `json:"isFirstInvitedWheel"`
+		Amount bool `json:"amount"`
 	} `json:"data"`
 }
 
 // 点击4个礼物盒
-func ClickWheelFunc(userName string) bool {
+func ClickWheelFunc(userName, token string) bool {
 	api := "/api/Activity/SpinInvitedWheel"
 	base_url := common.SIT_WEB_API
-	// 登录进来
-	token := GeneralRegiterFunc(userName)
-	// 点击4个礼物盒
 	payloadStruct := &common.BaseStruct{}
 	randmo := request.RandmoNie()
 	timestamp := request.GetNowTime()
@@ -45,5 +42,6 @@ func ClickWheelFunc(userName string) bool {
 		fmt.Printf("JSON 解析错误: %v", err)
 		return false
 	}
-	return resp.Data.IsFirstInvitedWheel
+	fmt.Println("点击这个4个礼物盒的一个", resp.Data.Amount)
+	return resp.Data.Amount
 }

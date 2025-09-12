@@ -30,7 +30,7 @@ type Response struct {
 	} `json:"data"`
 }
 
-// 总代注册 请求
+// 总代注册 请求  返回token
 func GeneralRegiterFunc(userName string) string {
 	api := "/api/Home/MobileAutoLogin"
 	base_url := common.SIT_WEB_API
@@ -50,9 +50,10 @@ func GeneralRegiterFunc(userName string) string {
 		// 获取验证码
 		// 随机浏览器指纹
 		cry := utils.GenerateCryptoRandomString(32)
+		devices := utils.GenerateCryptoRandomString(16)
 		randmo := request.RandmoNie()
 		timestamp := request.GetNowTime()
-		payloadList := []interface{}{userName, verifyCode, "", cry, "", "", "", randmo, "en", "", timestamp}
+		payloadList := []interface{}{userName, verifyCode, devices, cry, "", "", "", randmo, "en", "", timestamp}
 		payloadMap, err := common.StructToMap(payloadStruct, payloadList)
 		if err != nil {
 			fmt.Println(err)
@@ -73,7 +74,7 @@ func GeneralRegiterFunc(userName string) string {
 		}
 
 		// 输出 token 值
-		fmt.Printf("%s注册成功并且已经登录++++++++", userName)
+		fmt.Printf("%s注册成功并且已经登录++++++++\n", userName)
 		return resp.Data.Token
 	}
 	return ""

@@ -15,11 +15,9 @@ type ClickShareResponse struct {
 }
 
 // 点击分享按钮 // 返回一个邀请码
-func ClickShareFunc(userName string) string {
+func ClickShareFunc(userName, token string) string {
 	api := "/api/Activity/GetUserInviteLinkAddress"
 	base_url := common.SIT_WEB_API
-	// 登录进来
-	token := GeneralRegiterFunc(userName)
 	// 点击4个礼物盒
 	payloadStruct := &common.BaseStruct{}
 	randmo := request.RandmoNie()

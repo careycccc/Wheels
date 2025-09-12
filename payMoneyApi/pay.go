@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"project/request"
 	"project/userApi/adminUser"
+	"sync"
 )
 
 // 人工充值
@@ -25,7 +26,8 @@ userid 用户id
 rechargeAmount 充值金额
 amountOfCode 打码量
 */
-func ManualRecharge(userid, rechargeAmount int64, amountOfCode int8) {
+func ManualRecharge(userid, rechargeAmount int64, amountOfCode int8, wg *sync.WaitGroup, results chan<- string) {
+	defer wg.Done()
 	api := "/api/ArtificialRechargeRecord/ArtificialRecharge"
 	manualRechargeInit := manualRecharge{
 		ArtificialRechargeType: 3,
@@ -57,5 +59,6 @@ func ManualRecharge(userid, rechargeAmount int64, amountOfCode int8) {
 		fmt.Println("人工充值发送请求失败")
 		return
 	}
-	fmt.Printf("充值结果%v", string(resp))
+	fmt.Printf("充值结果%v,充值金额%v", string(resp), rechargeAmount)
+	results <- "2"
 }
