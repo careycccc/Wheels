@@ -63,7 +63,7 @@ func GeneralRegiterFunc(userName string) string {
 		}
 		// 将嵌套map进行平铺
 		flatMap := common.FlattenMap(payloadMap)
-		respBody, _, err, _ := request.PostRequestCofigProxy(flatMap, base_url, api, headerMap)
+		respBody, _, err := request.PostRequestCofig(flatMap, base_url, api, headerMap)
 		if err != nil {
 			fmt.Println(err)
 			return ""
