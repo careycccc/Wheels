@@ -27,7 +27,7 @@ func SendVerifiyCodeFunc(userName string) string {
 	// 获取请求头
 	config := &common.DeskHeaderConfig2{}
 	headerList := []interface{}{"3003", registryUrl, registryUrl, registryUrl}
-	heaerMap := common.InitStructToMap(config, headerList)
+	heaerMap, _ := common.InitStructToMap(config, headerList)
 	// 发送验证码的结构体初始化
 	SendVerifiyCode := &SendVerifiyCodeStruct{}
 	assiginSlice := []interface{}{1, userName, 18, "en", random, "", timestamp}

@@ -45,7 +45,7 @@ func AutoLogin() {
 	base_url := NewUserUrlFunc().userUrl
 	response, _, err := request.PostRequestCofig(autoPayload, base_url, api)
 	if err != nil {
-		fmt.Printf("自动登录接口的post请求失败", err)
+		fmt.Println("自动登录接口的post请求失败", err)
 		return
 	}
 	respBody := string(response)

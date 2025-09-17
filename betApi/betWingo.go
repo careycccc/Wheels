@@ -50,7 +50,7 @@ func BetWingo(gameCode string, amount, betMultiple int, betContent, issueNumber,
 	// 参数化
 	bet := &BetRequest{}
 	betResultList := []interface{}{gameCode, issueNumber, amount, betMultiple, betContent, "en", request.RandmoNie(), "", request.GetNowTime()}
-	resultMap := common.InitStructToMap(bet, betResultList)
+	resultMap, _ := common.InitStructToMap(bet, betResultList)
 	// 获取请求头
 	deskA := &common.BetTokenStruct{}
 	url_h5 := common.WMG_H5

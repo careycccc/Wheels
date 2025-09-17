@@ -1,17 +1,12 @@
 package deskApi
 
 import (
+	"encoding/json"
 	"fmt"
 	"project/common"
 	"project/request"
 	"project/utils"
 )
-
-//   "userName": "919091997115",
-//   "verifyCode": "614377",
-//   "inviteCode": "YDWY52N",
-//   "registerFingerprint": "e21f226e2db8717cc38568331be44cf3",
-//   "track": { "isTrusted": true, "_vts": 1757399740332 },
 
 // 注册接口
 
@@ -32,14 +27,21 @@ type TrackStruct struct {
 	Vts       int64 `json:"_vts"`
 }
 
+type ResponseResiter struct {
+	Data struct {
+		Token string `json:"token"`
+	} `json:"data"`
+}
+
 /*
 注册接口
 userName  用户名
 verifyCode 验证码
 inviteCode 邀请码
+return token  返回token
 *
 */
-func RegisterFunc(userName, verifyCode, inviteCode string) {
+func RegisterFunc(userName, verifyCode, inviteCode string) string {
 	api := "/api/Home/MobileAutoLogin"
 	base_url := common.SIT_WEB_API
 	random := request.RandmoNie()
@@ -51,12 +53,22 @@ func RegisterFunc(userName, verifyCode, inviteCode string) {
 	registreList := []interface{}{"3003", register_url, register_url, register_url}
 	// 初始化请求头
 	headerconfig := &common.DeskHeaderConfig2{}
-	headerMap := common.InitStructToMap(headerconfig, registreList)
-	_, _, err := request.PostRequestCofig(registerMap, base_url, api, headerMap)
+	headerMap, _ := common.InitStructToMap(headerconfig, registreList)
+	respBoy, _, err := request.PostRequestCofig(registerMap, base_url, api, headerMap)
 	if err != nil {
 		fmt.Println(err)
-		return
+		return ""
 	}
+	// 返回token
+	// fmt.Println("注册返回的结果", string(respBoy))
+	var response ResponseResiter
+	err = json.Unmarshal(respBoy, &response)
+	if err != nil {
+		fmt.Println("解析响应失败: %v", err)
+		return ""
+	}
+	return response.Data.Token
+
 }
 
 func InitializeRegisterStruct(data []interface{}) (map[string]interface{}, error) {

@@ -21,7 +21,9 @@ userid 用户的id
 password 要修改的密码
 *
 */
-func UpdataPasswordFunc(userid int64, password string, wg *sync.WaitGroup, results chan<- string) {
+func UpdataPasswordFunc(userid int64, password string, wg *sync.WaitGroup) {
+	wg.Add(1)
+	fmt.Println("修改的用户id", userid)
 	defer wg.Done()
 	api := "/api/Users/UpdatePassword"
 	// 获取token
@@ -45,11 +47,10 @@ func UpdataPasswordFunc(userid int64, password string, wg *sync.WaitGroup, resul
 	}
 	flatMap := common.FlattenMap(payloadMap)
 
-	_, _, err = request.PostRequestCofig(flatMap, header_url, api, headerMap)
+	respBoy, _, err := request.PostRequestCofig(flatMap, header_url, api, headerMap)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	// fmt.Println(string(respBoy))
-	results <- "1"
+	fmt.Println("修改密码的结果", string(respBoy))
 }

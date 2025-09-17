@@ -23,7 +23,7 @@ func ClickShareFunc(userName, token string) string {
 	randmo := request.RandmoNie()
 	timestamp := request.GetNowTime()
 	payloadList := []interface{}{randmo, "en", "", timestamp}
-	payloadMap := common.InitStructToMap(payloadStruct, payloadList)
+	payloadMap, _ := common.InitStructToMap(payloadStruct, payloadList)
 	// 请求头
 	headerStruct := &common.DeskHeaderAstruct2{}
 	headerUrl := common.PLANT_H5

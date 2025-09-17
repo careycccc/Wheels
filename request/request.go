@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"project/common"
 	"project/utils"
 	"time"
 )
@@ -123,6 +124,165 @@ func PostRequestCofig(payload map[string]interface{}, base_url, api string, args
 	if err != nil {
 		fmt.Println(err)
 		return nil, nil, err
+	}
+
+	return respBody, resp, nil
+}
+
+// PostRequestCofigProxy 带代理功能的POST请求函数
+// 如果代理失效会自动尝试下一个可用的代理
+// 返回格式: (响应体, 响应对象, 错误, 使用的IP信息)
+func PostRequestCofigProxy(payload map[string]interface{}, base_url, api string, args ...map[string]interface{}) ([]byte, *http.Response, error, string) {
+	url := base_url + api
+
+	// 判断传进来的paylaod是否有签名，没有就添加上
+	_, exists := payload["signature"]
+	if !exists {
+		payload["signature"] = ""
+	}
+	verfiyp := ""
+	signature := utils.GetSignature(payload, &verfiyp)
+	if signature == "" {
+		fmt.Println("utils的签名是空的", signature)
+	}
+
+	payload["signature"] = signature
+
+	//将请求数据转换成json
+	body, err := json.Marshal(payload)
+	if err != nil {
+		log.Fatalf(" json 编码失败:%v", err)
+	}
+
+	// 尝试使用代理发送请求
+	respBody, resp, err, ipInfo := postWithProxyRetry(body, url, args...)
+	return respBody, resp, err, ipInfo
+}
+
+// postWithProxyRetry 使用代理重试机制发送POST请求
+func postWithProxyRetry(body []byte, url string, args ...map[string]interface{}) ([]byte, *http.Response, error, string) {
+	// 加载代理配置
+	config, err := LoadProxyConfig()
+	if err != nil {
+		fmt.Printf("加载代理配置失败，使用直连: %v\n", err)
+		respBody, resp, err := postWithoutProxy(body, url, args...)
+		return respBody, resp, err, "direct"
+	}
+
+	if len(config.AvailableProxies) == 0 {
+		fmt.Println("没有可用的代理，使用直连")
+		respBody, resp, err := postWithoutProxy(body, url, args...)
+		return respBody, resp, err, "direct"
+	}
+
+	// 尝试每个可用的代理
+	for i, proxyInfo := range config.AvailableProxies {
+		fmt.Printf("尝试使用代理 %d/%d: %s:%s\n", i+1, len(config.AvailableProxies), proxyInfo.IP, proxyInfo.Port)
+
+		respBody, resp, err := postWithSingleProxy(body, url, &proxyInfo, args...)
+		if err == nil {
+			fmt.Printf("代理 %s:%s 请求成功\n", proxyInfo.IP, proxyInfo.Port)
+			ipInfo := fmt.Sprintf("%s:%s", proxyInfo.IP, proxyInfo.Port)
+			return respBody, resp, nil, ipInfo
+		}
+
+		fmt.Printf("代理 %s:%s 请求失败: %v\n", proxyInfo.IP, proxyInfo.Port, err)
+
+		// 如果还有更多代理，继续尝试
+		if i < len(config.AvailableProxies)-1 {
+			fmt.Println("尝试下一个代理...")
+			time.Sleep(1 * time.Second) // 等待1秒再尝试下一个代理
+		}
+	}
+
+	// 所有代理都失败了，使用直连
+	fmt.Println("所有代理都失败，尝试直连...")
+	respBody, resp, err := postWithoutProxy(body, url, args...)
+	return respBody, resp, err, "direct"
+}
+
+// postWithSingleProxy 使用单个代理发送POST请求
+func postWithSingleProxy(body []byte, requestURL string, proxyInfo *common.ProxyInfo, args ...map[string]interface{}) ([]byte, *http.Response, error) {
+	// 创建代理URL
+	proxyURL, err := url.Parse(fmt.Sprintf("http://%s:%s", proxyInfo.IP, proxyInfo.Port))
+	if err != nil {
+		return nil, nil, fmt.Errorf("解析代理URL失败: %v", err)
+	}
+
+	// 创建带代理的Transport
+	transport := &http.Transport{
+		Proxy: http.ProxyURL(proxyURL),
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, // 仅限测试，跳过证书验证
+		},
+	}
+
+	// 创建HTTP客户端
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   30 * time.Second, // 设置超时时间
+	}
+
+	// 创建请求
+	req, err := http.NewRequest("POST", requestURL, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, nil, fmt.Errorf("创建请求失败: %v", err)
+	}
+
+	// 设置请求头
+	if len(args) > 0 {
+		setHeaders(req, args[0])
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36")
+	req.Header.Set("Content-Type", "application/problem+json; charset=UTF-8")
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+	req.Header.Set("Connection", "keep-alive")
+
+	// 发送请求
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("发送请求失败: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// 处理响应
+	respBody, resp, err := handlerCode(resp)
+	if err != nil {
+		return nil, nil, fmt.Errorf("处理响应失败: %v", err)
+	}
+
+	return respBody, resp, nil
+}
+
+// postWithoutProxy 不使用代理发送POST请求
+func postWithoutProxy(body []byte, requestURL string, args ...map[string]interface{}) ([]byte, *http.Response, error) {
+	// 创建请求
+	req, err := http.NewRequest("POST", requestURL, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, nil, fmt.Errorf("创建请求失败: %v", err)
+	}
+
+	// 设置请求头
+	if len(args) > 0 {
+		setHeaders(req, args[0])
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36")
+	req.Header.Set("Content-Type", "application/problem+json; charset=UTF-8")
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+	req.Header.Set("Connection", "keep-alive")
+
+	// 使用默认客户端
+	client := checkHttp2()
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("发送请求失败: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// 处理响应
+	respBody, resp, err := handlerCode(resp)
+	if err != nil {
+		return nil, nil, fmt.Errorf("处理响应失败: %v", err)
 	}
 
 	return respBody, resp, nil

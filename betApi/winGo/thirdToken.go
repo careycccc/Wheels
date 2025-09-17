@@ -1,6 +1,7 @@
 package winGo
 
 import (
+	"encoding/json"
 	"fmt"
 	"project/common"
 	"project/request"
@@ -24,7 +25,7 @@ func ThridTokenFunc(tokenUser, gameCode string) string {
 	// 初始化结构体并且赋值
 	GetGameInfo := &GetGameInfoStruct{}
 	values := []interface{}{gameCode, "en", request.RandmoNie(), "", request.GetNowTime()}
-	paramsMap := common.InitStructToMap(GetGameInfo, values)
+	paramsMap, _ := common.InitStructToMap(GetGameInfo, values)
 	// 获取签名
 	verifyPwd := ""
 	signatureStr := utils.GetSignature(paramsMap, &verifyPwd)
@@ -57,12 +58,23 @@ type GetBalanceInfoStruct struct {
 	Timestamp int64  `json:"timestamp"`
 }
 
+// 获取banlance的值
+type BalanceStruct struct {
+	Data struct {
+		Balance float64 `json:"balance"`
+	} `json:"data"`
+	Code        int    `json:"code"`
+	Msg         string `json:"msg"`
+	MsgCode     int    `json:"msgCode"`
+	ServiceTime int64  `json:"serviceTime"`
+}
+
 // 请求GetBalance
-func GetBalanceInfoFunc(tokenUser, gameCode string) string {
+func GetBalanceInfoFunc(tokenUser, gameCode string) (string, float64) {
 	// 初始化结构体并且赋值
 	GetGameInfo := &GetBalanceInfoStruct{}
 	values := []interface{}{"en", request.RandmoNie(), "", request.GetNowTime()}
-	paramsMap := common.InitStructToMap(GetGameInfo, values)
+	paramsMap, _ := common.InitStructToMap(GetGameInfo, values)
 	// 获取签名
 	verifyPwd := ""
 	signatureStr := utils.GetSignature(paramsMap, &verifyPwd)
@@ -76,14 +88,22 @@ func GetBalanceInfoFunc(tokenUser, gameCode string) string {
 	token := ThridTokenFunc(tokenUser, gameCode)
 	desSlice := []interface{}{url_h5, url_h5, token}
 	headMap, _ := common.AssignSliceToStructMap(deskA, desSlice)
-	_, resp, err := request.GetRequest(baseUrl, api, headMap, paramsMap)
+	respBoy, resp, err := request.GetRequest(baseUrl, api, headMap, paramsMap)
 	if err != nil {
 		fmt.Println(err)
-		return ""
+		return "", 0.0
 	}
+	// fmt.Println("GetBalanceInfoFunc的响应结果", string(respBoy))
+	var balance BalanceStruct
+	err = json.Unmarshal([]byte(string(respBoy)), &balance)
+	if err != nil {
+		fmt.Println("GetBalanceInfoFunc的反序列失败", err)
+		return "", 0.0
+	}
+	// fmt.Println("余额", balance.Data.Balance)
 	authorization := resp.Header.Get("Authorization")
 	// 去掉前缀 "Bearer "
 	cleanToken := strings.TrimPrefix(authorization, "Bearer ")
 	// fmt.Println("响应头的tokenBanlne-----", cleanToken)
-	return cleanToken
+	return cleanToken, balance.Data.Balance
 }

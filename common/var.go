@@ -213,6 +213,22 @@ const (
 	SIT_WEB_API      = "https://sit-webapi.mggametransit.com"
 )
 
+// 代理IP配置结构体
+type ProxyConfig struct {
+	AvailableProxies []ProxyInfo `yaml:"available_proxies"`
+	LastUpdated      string      `yaml:"last_updated"`
+}
+
+// 代理信息结构体
+type ProxyInfo struct {
+	IP       string `yaml:"ip"`
+	Port     string `yaml:"port"`
+	Protocol string `yaml:"protocol"`
+	Status   string `yaml:"status"` // "active", "inactive"
+	TestTime string `yaml:"test_time"`
+	Source   string `yaml:"source"` // "predefined", "online"
+}
+
 // AssignSliceToStructMap 将切片的值一一对应赋值到结构体字段并返回 map[string]interface{}
 // structObj结构体对象，sliceObj 切片对象
 // 含有 Authorization
@@ -311,7 +327,7 @@ func (iss *GetIssNunmberHeaderConfig) GetIssNunmberHeaderFunc(token, betType str
 }
 
 // 初始化结构体，并且返回map
-func InitStructToMap(strct interface{}, values []interface{}) map[string]interface{} {
+func InitStructToMap(strct interface{}, values []interface{}) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 
 	v := reflect.ValueOf(strct).Elem() // 获取结构体值
@@ -338,7 +354,7 @@ func InitStructToMap(strct interface{}, values []interface{}) map[string]interfa
 		result[tag] = v.Field(i).Interface()
 	}
 
-	return result
+	return result, nil
 }
 
 // StructToMap 将结构体初始化并将切片值映射到 map   // 可以解决嵌套结构体

@@ -1,6 +1,8 @@
 package payMoneyapi
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"project/request"
 	"project/userApi/adminUser"
@@ -20,13 +22,20 @@ type manualRecharge struct {
 	Timestamp              int64  `json:"timestamp"`
 }
 
+type Response struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data any    `json:"data"`
+}
+
 /*
 *
 userid 用户id
 rechargeAmount 充值金额
 amountOfCode 打码量
 */
-func ManualRecharge(userid, rechargeAmount int64, amountOfCode int8, wg *sync.WaitGroup, results chan<- string) {
+func ManualRecharge(userid, rechargeAmount int64, amountOfCode int8, wg *sync.WaitGroup) error {
+	wg.Add(1)
 	defer wg.Done()
 	api := "/api/ArtificialRechargeRecord/ArtificialRecharge"
 	manualRechargeInit := manualRecharge{
@@ -56,9 +65,19 @@ func ManualRecharge(userid, rechargeAmount int64, amountOfCode int8, wg *sync.Wa
 	headMap, base_url := adminUser.GetHeaderUrl()
 	resp, _, err := request.PostRequestCofig(manualRechargedata, base_url, api, headMap)
 	if err != nil {
-		fmt.Println("人工充值发送请求失败")
-		return
+		err := errors.New("人工充值发送请求失败,原因" + error.Error(err))
+		return err
 	}
-	fmt.Printf("充值结果%v,充值金额%v", string(resp), rechargeAmount)
-	results <- "2"
+	var response Response
+	error := json.Unmarshal([]byte(resp), &response)
+	if error != nil {
+		err := errors.New("人工充值反序劣化失败,原因" + error.Error())
+		return err
+	}
+	if response.Code != 0 {
+		err := errors.New("人工充值失败,原因" + response.Msg)
+		return err
+	}
+	fmt.Printf("充值结果%v,充值金额%v\n", string(resp), rechargeAmount)
+	return nil
 }

@@ -1,13 +1,17 @@
 package main
 
 import (
-	"project/betApi"
+	"fmt"
+	"os"
 	"project/common"
 	payMoneyapi "project/payMoneyApi"
 	"project/userApi/adminUser"
 	userApi "project/userApi/adminUser"
 	_ "project/userApi/adminUser/activeModle"
+	"project/userApi/deskApi"
+	"project/utils"
 	"sync"
+	"time"
 )
 
 /*
@@ -26,12 +30,9 @@ func adminRun(userAmount string, moneny int64) {
 	if userid == -1 {
 		return
 	}
-	// 通道收集结果
-	results := make(chan string, 2)
-
 	// WaitGroup
 	var wg sync.WaitGroup
-	payMoneyapi.ManualRecharge(userid, moneny, 0, &wg, results) // 用户充值
+	payMoneyapi.ManualRecharge(userid, moneny, 0, &wg) // 用户充值
 }
 
 /*
@@ -77,7 +78,7 @@ userAmount string 传入登录的账号
 // 	verifyCode := actingFy.QueryTifyFunc2() //获取验证码
 // 	fmt.Println("当前的验证码", verifyCode)
 // 	// 发送注册
-// 	deskApi.RegisterFunc(userAmount, verifyCode, yqCode)
+// deskApi.RegisterFunc(userAmount, verifyCode, yqCode)
 // 	// 后台登录后进行充值
 // 	time.Sleep(time.Second * 1)
 
@@ -136,21 +137,24 @@ userAmount string 传入登录的账号
 
 func main() {
 	adminUser.InitConfig()
-
-	userAmount := "919111997677" // 需要添加的用户账号
+	// userAmount := "919162190451"           // 需要添加的用户账号
+	// deskApi.RetentionFisterDay(userAmount) // 留存第一天 需要注册和充值或投注
 	// deskApi.InvitationCarousel(userAmount, 120)
+
 	// userAmount := utils.RandmoUserCount()
-	// RunWhille(userAmount, "IW_6TXBN5N", 100)
-	// RunTaskWhille("IW_9SZ3X4N", 100)
+	// deskApi.RunWhille(userAmount, "IW_2437757", 100)
+	// 只要填写邀请码，自动邀请下级，并且充值 但是不会点击4个礼物盒子
+	// deskApi.RunTaskWhille("IW_Z8GYH5N", 195)
 	// deskRun(userAmount)  // 前台登录并进行了投注
 	// adminRun(userAmount, 778)  // 后台进行登录和人工充值
 	// adminUser.SendOneZnx() // 发送站内信
 	// actingFy.RunInvite()
 	// actingFy.SendVerifiyCodeFunc(userAmount) // 发送验证码
+	// time.Sleep(time.Second * 4)
 	// verifyCode := actingFy.QueryTifyFunc2() //获取验证码
 	// fmt.Println("当前的验证码", verifyCode)
-	// actingFy.GetInviteCodeFunc("919091997113") // 获取邀请码
-	// deskApi.RegisterFunc(userAmount, "214537", "IW_YGN5QLN")
+	// // actingFy.GetInviteCodeFunc("919091997113") // 获取邀请码
+	// deskApi.RegisterFunc(userAmount, verifyCode, "IW_YGN5QLN")
 
 	// 总代注册
 	// deskApi.GeneralRegiterFunc(userAmount)
@@ -159,5 +163,48 @@ func main() {
 
 	// betApi.BetRun(userAmount)
 	// memberlist.UpdataPasswordFunc(2437103, "qwer1234")  // 修改密码
-	betApi.RegesterBet(userAmount) // 前台进行注册，后台充值修改密码后，进行投注
+	// betApi.RegesterBet(userAmount) // 前台进行注册，后台充值修改密码后，进行投注
+
+	// actingFy.QueryTifyFunc("919111997678")
+	// deskApi.UserloginY1("919111997678", "qwer1234")
+	// request.GetProxyIpFunc()
+	// deskApi.GeneralRegiterFuncProxyRun()
+	// betApi.RegesterBetRandmo()
+
+	// // 随机生成10个用户id，进行注册，充值，投注
+	// idlist := utils.RandmoUserId(100)
+	// // 打印几个示例ID
+	// for i := 0; i < len(idlist); i++ {
+	// 	fmt.Printf("Example ID: %s\n", idlist[i])
+	// 	time.Sleep(time.Second * 1)
+	// 	betApi.RegesterBet(idlist[i])
+	// }
+
+	// 随机10个总代进行邀请转盘的邀请
+	idlist := utils.RandmoUserId(2)
+	for i := 0; i < len(idlist); i++ {
+		fmt.Printf("++++++++++++++++++++++++Example ID++++++++++++++++++++: %s\n", idlist[i])
+		time.Sleep(time.Second * 1)
+		AppendToYAML(idlist[i])
+		deskApi.InvitationCarousel(idlist[i], 160)
+	}
+
+}
+
+// AppendToYAML 将数据追加写入到 1.yaml 文件，每行一个数据
+func AppendToYAML(data ...interface{}) error {
+	file, err := os.OpenFile("./1.yaml", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	for _, v := range data {
+		// 将数据转换为字符串并写入，带换行符
+		_, err := file.WriteString(fmt.Sprintf("%v\n", v))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

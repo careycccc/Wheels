@@ -218,21 +218,40 @@ func GenerateCryptoRandomString(length int) string {
 }
 
 // 随机生成用户
-func RandmoUserCount() string {
-	// 获取当前时间
+func RandmoUserCount() (string, error) {
+	// 获取当前日期
 	now := time.Now()
-	// 获取当前月份，格式化为两位数（例如：03, 04, ...）
-	month := now.Format("01") // 使用"01"确保月份总是两位数
-	// 生成7位随机数字
-	randomDigits, err := rand.Int(rand.Reader, big.NewInt(10000000)) // 生成0到9999999之间的随机数
-	if err != nil {
-		return ""
+	month := now.Month()
+	day := now.Day()
+
+	// 格式化月和日
+	var prefix string
+	if month < 10 {
+		prefix = fmt.Sprintf("%d%02d", month, day) // 月1位+日2位=3位
+	} else {
+		prefix = fmt.Sprintf("%02d%02d", month, day) // 月2位+日2位=4位
 	}
-	// 将随机数转换为字符串，并确保为8位长度（例如：01234567）
-	randomStr := fmt.Sprintf("%08d", randomDigits)
-	// 组合月份和随机数字，确保总共10位数字
-	result := month + randomStr[1:] // 从randomStr的第2位开始拼接，确保总共10位数字，且前三位是月份
-	return "91" + result
+
+	// 根据前缀长度决定随机数位数
+	var randomLength int
+	if len(prefix) == 3 {
+		randomLength = 7
+	} else {
+		randomLength = 6
+	}
+
+	// 生成随机数
+	max := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(randomLength)), nil) // 10^randomLength
+	randNum, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return "", err
+	}
+
+	// 格式化随机数，补0到指定长度
+	randStr := fmt.Sprintf("%0*d", randomLength, randNum)
+
+	// 合并前缀和随机数
+	return "91" + prefix + randStr, nil
 }
 
 // 随机生成一个数字

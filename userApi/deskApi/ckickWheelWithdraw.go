@@ -1,0 +1,56 @@
+package deskApi
+
+import (
+	"fmt"
+	"project/common"
+	"project/request"
+)
+
+// 点击转盘提现
+
+type ClickWheelWithdraw struct {
+	Amount int64 `json:"amount"` // 提现金额
+	common.BaseStruct
+}
+
+type ClickWheelWithdrawResponse struct {
+	Code    int `json:"code"`
+	MsgCode int `json:"msgCode"`
+	Data    any `json:"data"`
+}
+
+// 输入提现金额  需要传入token
+func ClickWheelWithdrawFunc(amount int64, token string) (string, error) {
+	api := "/api/Activity/SumitInvitedWheelWithdraw"
+	base_url := common.SIT_WEB_API
+	randmo := request.RandmoNie()
+	timeStamp := request.GetNowTime()
+	// 组装请求体
+	payloadStruct := &ClickWheelWithdraw{}
+
+	paylaodList := []interface{}{amount, randmo, "en", "", timeStamp}
+	payloadMap, err := common.StructToMap(payloadStruct, paylaodList)
+	if err != nil {
+		return "", fmt.Errorf("请求体组装失败: %v", err)
+	}
+	fildMap := common.FlattenMap(payloadMap)
+	// fmt.Println("请求体的参数", payloadMap)
+	// 获取请求头
+	headerStruct := &common.DeskHeaderAstruct2{}
+	headerUrl := common.PLANT_H5
+	headerList := []interface{}{"3003", headerUrl, headerUrl, headerUrl, token}
+	headMap, err := common.AssignSliceToStructMap(headerStruct, headerList)
+	if err != nil {
+		fmt.Println("请求头组装失败", err)
+		return "", err
+	}
+	// fmt.Println("请求体的参数", payloadMap)
+	respBoy, _, err := request.PostRequestCofig(fildMap, base_url, api, headMap)
+	if err != nil {
+		return "", fmt.Errorf("请求失败: %v", err)
+	}
+
+	fmt.Println("点击转盘提现返回的结果", string(respBoy))
+
+	return string(respBoy), nil
+}
