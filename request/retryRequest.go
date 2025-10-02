@@ -28,7 +28,7 @@ func (f Func2WithResult) Call(params ...interface{}) (interface{}, error) {
 	return f(userName, password)
 }
 
-// retryOperationWithResult handles retries for the given function
+// 需要进行重试的操作
 func RetryOperationWithResult(fn RetryableFuncWithResult, params ...interface{}) (interface{}, error) {
 	const maxRetries = 3
 	const retryInterval = 2 * time.Second
@@ -41,7 +41,7 @@ func RetryOperationWithResult(fn RetryableFuncWithResult, params ...interface{})
 
 		if err.Error() == "请求失败: Requests are too frequent, Please try again later" {
 			if attempt == maxRetries {
-				return nil, fmt.Errorf("max retries reached: %w", err)
+				return nil, fmt.Errorf("max retries reached: %w\n", err)
 			}
 			fmt.Printf("Attempt %d failed with error: %v, retrying in %v...\n", attempt, err, retryInterval)
 			time.Sleep(retryInterval)

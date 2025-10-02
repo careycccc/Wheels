@@ -6,31 +6,52 @@ import (
 	"project/common"
 	"project/request"
 	"project/utils"
+	"reflect"
+	"strings"
 )
 
-// 注册接口
+// // 注册接口
 
-type RegisterStruct struct {
-	UserName            string `json:"userName"`
-	VerifyCode          string `json:"verifyCode"`
-	InviteCode          string `json:"inviteCode"`
-	RegisterFingerprint string `json:"registerFingerprint"`
-	Random              int64  `json:"randmo"`
-	Language            string `json:"language"`
-	Signature           string `json:"signature"`
-	Timestamp           int64  `json:"timestamp"`
-	TrackStruct
-}
+// type RegisterStruct struct {
+// 	UserName            string `json:"userName"`
+// 	VerifyCode          string `json:"verifyCode"`
+// 	InviteCode          string `json:"inviteCode"`
+// 	RegisterFingerprint string `json:"registerFingerprint"`
+// 	Random              int64  `json:"randmo"`
+// 	Language            string `json:"language"`
+// 	Signature           string `json:"signature"`
+// 	Timestamp           int64  `json:"timestamp"`
+// 	TrackStruct
+// }
 
-type TrackStruct struct {
-	IsTrusted bool  `json:"isTrusted"`
-	Vts       int64 `json:"_vts"`
-}
+// type TrackStruct struct {
+// 	IsTrusted bool  `json:"isTrusted"`
+// 	Vts       int64 `json:"_vts"`
+// }
 
 type ResponseResiter struct {
 	Data struct {
 		Token string `json:"token"`
 	} `json:"data"`
+}
+
+// 嵌套结构体 Track
+type Track struct {
+	IsTrusted bool  `json:"isTrusted"`
+	Vts       int64 `json:"_vts"`
+}
+
+// 主结构体
+type RegisterStruct struct {
+	UserName            string `json:"userName"`
+	VerifyCode          string `json:"verifyCode"`
+	InviteCode          string `json:"inviteCode"`
+	RegisterFingerprint string `json:"registerFingerprint"`
+	Track               Track  `json:"track"`
+	Language            string `json:"language"`
+	Random              int64  `json:"random"`
+	Signature           string `json:"signature"`
+	Timestamp           int64  `json:"timestamp"`
 }
 
 /*
@@ -42,76 +63,111 @@ return token  返回token
 *
 */
 func RegisterFunc(userName, verifyCode, inviteCode string) string {
+	fmt.Println("+++++++++", userName, verifyCode, inviteCode)
 	api := "/api/Home/MobileAutoLogin"
 	base_url := common.SIT_WEB_API
 	random := request.RandmoNie()
 	timestamp := request.GetNowTime()
 	generate := utils.GenerateCryptoRandomString(32)
-	RegisterList := []interface{}{userName, verifyCode, inviteCode, generate, true, timestamp, "en", random, "", timestamp}
-	registerMap, _ := InitializeRegisterStruct(RegisterList)
+	payloadStruct := &RegisterStruct{}
+	RegisterList := []interface{}{userName, verifyCode, inviteCode, generate, Track{IsTrusted: true, Vts: timestamp}, "en", random, "", timestamp}
+	registerMap, err := common.InitStructToMap(payloadStruct, RegisterList)
+	if err != nil {
+		fmt.Println("注册信息的payload的map报错", err)
+		return ""
+	}
+	// filedMap := common.FlattenMap(registerMap)
 	register_url := common.REGISTER_url
 	registreList := []interface{}{"3003", register_url, register_url, register_url}
 	// 初始化请求头
 	headerconfig := &common.DeskHeaderConfig2{}
-	headerMap, _ := common.InitStructToMap(headerconfig, registreList)
+	headerMap, err := common.InitStructToMap(headerconfig, registreList)
+	if err != nil {
+		fmt.Println("注册信息的payload的map报错", err)
+		return ""
+	}
+	//fmt.Println("+++++++registerMap", registerMap)
 	respBoy, _, err := request.PostRequestCofig(registerMap, base_url, api, headerMap)
 	if err != nil {
 		fmt.Println(err)
 		return ""
 	}
 	// 返回token
-	// fmt.Println("注册返回的结果", string(respBoy))
+	//fmt.Println("注册返回的结果", string(respBoy))
 	var response ResponseResiter
 	err = json.Unmarshal(respBoy, &response)
 	if err != nil {
-		fmt.Println("解析响应失败: %v", err)
+		fmt.Printf("解析响应失败: %v\n", err)
 		return ""
 	}
 	return response.Data.Token
 
 }
 
-func InitializeRegisterStruct(data []interface{}) (map[string]interface{}, error) {
-	// Check if slice has enough elements (10 expected)
-	if len(data) != 10 {
-		return nil, fmt.Errorf("expected 10 elements in slice, got %d", len(data))
-	}
-
-	// Create TrackStruct
-	track := TrackStruct{
-		IsTrusted: data[4].(bool),
-		Vts:       data[5].(int64), // Empty string from slice
-	}
-
-	// Create RegisterStruct
-	register := RegisterStruct{
-		UserName:            data[0].(string),
-		VerifyCode:          data[1].(string),
-		InviteCode:          data[2].(string),
-		RegisterFingerprint: data[3].(string),
-		Random:              data[7].(int64),
-		Language:            data[6].(string),
-		Signature:           data[8].(string),
-		Timestamp:           data[9].(int64),
-		TrackStruct:         track,
-	}
-
-	// Convert to map[string]interface{}
+func InitStructToMap(strct interface{}, values []interface{}) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
-	// Manually populate the map to control number formatting
-	result["userName"] = register.UserName
-	result["verifyCode"] = register.VerifyCode
-	result["inviteCode"] = register.InviteCode
-	result["registerFingerprint"] = register.RegisterFingerprint
-	result["random"] = register.Random // int64, no scientific notation
-	result["language"] = register.Language
-	result["signature"] = register.Signature
-	result["timestamp"] = register.Timestamp // int64, no scientific notation
-	result["isTrusted"] = register.IsTrusted
-	if register.Vts != 0 {
-		result["_vts"] = register.Vts // Only include if non-empty due to omitempty
-	} else {
-		result["_vts"] = "" // Explicitly set to empty string as per slice
+
+	// 检查输入是否为结构体指针
+	v := reflect.ValueOf(strct)
+	if v.Kind() != reflect.Ptr || v.Elem().Kind() != reflect.Struct {
+		return nil, fmt.Errorf("first parameter must be a pointer to a struct")
+	}
+	v = v.Elem()
+	t := v.Type()
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		fieldType := t.Field(i)
+
+		// 跳过不可导出字段
+		if fieldType.PkgPath != "" {
+			continue
+		}
+
+		// 获取 JSON 标签中的字段名
+		tag := fieldType.Tag.Get("json")
+		if tag == "" {
+			tag = fieldType.Name
+		} else {
+			if commaIdx := strings.Index(tag, ","); commaIdx != -1 {
+				tag = tag[:commaIdx]
+			}
+		}
+
+		// 如果切片长度不足，使用字段的当前值
+		if i >= len(values) || !reflect.ValueOf(values[i]).IsValid() {
+			result[tag] = v.Field(i).Interface()
+			continue
+		}
+
+		// 处理嵌套结构体
+		if fieldType.Type.Kind() == reflect.Struct {
+			nestedMap, err := InitStructToMap(reflect.New(fieldType.Type).Interface(), values[i:])
+			if err != nil {
+				return nil, fmt.Errorf("error in nested struct %s: %v", fieldType.Name, err)
+			}
+			result[tag] = nestedMap
+			if field.CanSet() && i < len(values) {
+				val := reflect.ValueOf(values[i])
+				if val.Type().AssignableTo(fieldType.Type) {
+					field.Set(val)
+				}
+			}
+			continue
+		}
+
+		// 处理字段赋值
+		if field.CanSet() {
+			val := reflect.ValueOf(values[i])
+			if val.Type().ConvertibleTo(field.Type()) {
+				field.Set(val.Convert(field.Type()))
+			} else {
+				return nil, fmt.Errorf("cannot assign slice element type %v to field %s of type %v", val.Type(), fieldType.Name, field.Type())
+			}
+		}
+
+		// 将字段值添加到结果 map
+		result[tag] = v.Field(i).Interface()
 	}
 
 	return result, nil

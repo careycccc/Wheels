@@ -70,7 +70,7 @@ func BetWingo(gameCode string, amount, betMultiple int, betContent, issueNumber,
 	code := res.Code
 	msgcode := res.MsgCode
 	if code == 0 && msgcode == 0 {
-		fmt.Printf("%v在%v投注了%v成功", username, gameCode, amount*betMultiple)
+		fmt.Printf("%v在%v投注了%v成功\n", username, gameCode, amount*betMultiple)
 	} else {
 		fmt.Println(res)
 	}

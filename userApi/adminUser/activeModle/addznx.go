@@ -1,4 +1,4 @@
-package adminUser
+package activeModle
 
 import (
 	"encoding/json"
@@ -7,8 +7,13 @@ import (
 	"project/common"
 	"project/request"
 	"project/userApi/adminUser"
+	"project/utils"
 	"strconv"
+	"sync"
 )
+
+// 发送站内信个数
+const ZNX_NUMBER = 6
 
 // Translation represents the translations array in the JSON
 type Translation struct {
@@ -220,7 +225,7 @@ type Notification struct {
 }
 
 // 返回一个id
-func QueryZnxFunc() int64 {
+func QueryZnxFunc() []int64 {
 	randmo := request.RandmoNie()
 	timestamp := request.GetNowTime()
 	// 获取请求头
@@ -231,7 +236,7 @@ func QueryZnxFunc() int64 {
 	resultMap, err := common.AssignSliceToStructMap(query, resultList)
 	if err != nil {
 		fmt.Println("站内信查询的结构体初始化报错", err)
-		return 1
+		return nil
 	}
 
 	resp, _, err := request.PostRequestCofig(resultMap, base_url, api, headMap)
@@ -253,7 +258,7 @@ func QueryZnxFunc() int64 {
 	}
 
 	// 打印 id 列表
-	return ids[0]
+	return ids[:ZNX_NUMBER+10]
 }
 
 // 点击启用
@@ -270,7 +275,7 @@ type ClickZnxStruct struct {
 传入要点击的id，才能启用
 *
 */
-func ClickZnxFunc(id int64) {
+func ClickZnxFunc(id int64) (string, error) {
 	randmo := request.RandmoNie()
 	timestamp := request.GetNowTime()
 	api := "/api/Inmail/UpdateState"
@@ -281,16 +286,17 @@ func ClickZnxFunc(id int64) {
 	resultList := []interface{}{1, id, randmo, "en", "", timestamp}
 	resultMap, err := common.AssignSliceToStructMap(clickZnx, resultList)
 	if err != nil {
-		fmt.Println("点击站内信的启用按钮请求结构体失败", err)
-		return
+		//fmt.Println("点击站内信的启用按钮请求结构体失败", err)
+		return "", fmt.Errorf("点击站内信的启用按钮请求结构体失败%v\n", err)
 	}
 
 	resp, _, err := request.PostRequestCofig(resultMap, base_url, api, headerMap)
 	if err != nil {
-		fmt.Println("点击站内信的启用按钮请求失败", err)
-		return
+		// fmt.Println("点击站内信的启用按钮请求失败", err)
+		return "", fmt.Errorf("点击站内信的启用按钮请求失败%v\n", err)
 	}
-	fmt.Println("点击站内信的启用按钮请求", string(resp))
+
+	return string(resp), nil
 }
 
 // 需要提供跳转类型，和跳转文字
@@ -298,7 +304,7 @@ func SendZnx(jumpNumber int, jumpText string) {
 	rand := request.RandmoNie()
 	timestamp := request.GetNowTime()
 	znxTitle := "自动化生成的站内信" + strconv.FormatInt(timestamp, 10)
-	result := CreateMessage(znxTitle, 11, 32, jumpNumber, jumpText, 13, "这是内容", 14, rand, timestamp, znxTitle)
+	result := CreateMessage(znxTitle, 1, 1, jumpNumber, jumpText, 1, "这是内容", 1, rand, timestamp, znxTitle)
 	headMap, base_url := GetHeaderMap()
 
 	api := "/api/Inmail/Add"
@@ -310,14 +316,22 @@ func SendZnx(jumpNumber int, jumpText string) {
 }
 
 func SendOneZnx() {
-	// 发送站内信
-	SendZnx(1, "跳转文字")
-	// 获取id
-	id := QueryZnxFunc()
-	if id > 0 {
-		ClickZnxFunc(id)
-	}
 
+	// 发送站内信
+	// for i := 1; i <= 50; i++ {
+	// 	SendZnx(i, "跳转"+strconv.Itoa(i))
+	// 	// 获取id
+	// 	id := QueryZnxFunc()
+	// 	if id > 0 {
+	// 		ClickZnxFunc(id)
+	// 	}
+	// }
+	idlist := utils.RandmoUserId(ZNX_NUMBER)
+	results := MoreSendZnx(idlist, 3)
+	// 打印结果
+	for _, result := range results {
+		fmt.Println(result)
+	}
 }
 
 func SendAllZnx() {
@@ -325,4 +339,78 @@ func SendAllZnx() {
 	// 	"充值","提现","礼品码","优惠券","超级大奖","洗码","vip","锦标赛","排行榜","活动礼包","站内信","邀请转盘","新版返佣","充值转盘","我的","首页","充值活动礼包",
 	// }
 	// StructToMap()
+}
+
+/*
+多并发的发送站内信
+包含并发逻辑，保证 a -> b -> c 串行
+inputs需要提供第一个函数的入参
+concurrency 并发量
+*
+*/
+func MoreSendZnx(inputs []string, concurrency int) []string {
+	idChan := make(chan struct{}, 1)
+	sem := make(chan struct{}, concurrency) // 信号量通道，控制并发量
+	var wg sync.WaitGroup                   // 等待所有任务完成
+	// results := make(chan struct {
+	// 	index  int
+	// 	result string
+	// }, len(inputs)) // 存储结果，带索引以便排序
+
+	// 处理每个输入
+	for i, input := range inputs {
+		wg.Add(1)
+		go func(idx int, input string, dChan chan struct{}) {
+
+			defer wg.Done()
+			sem <- struct{}{}        // 占用一个并发槽
+			defer func() { <-sem }() // 释放并发槽
+
+			// 串行执行 a -> b -> c
+			// 按顺序执行 a -> b -> c
+			SendZnx(i, "跳转"+strconv.Itoa(i))
+			// id := QueryZnxFunc()
+			// if str, err := ClickZnxFunc(id); err != nil {
+			// 	fmt.Println("站内信的启用失败", err)
+			// 	return
+			// } else {
+			// 	// 将结果发送到通道
+			// 	results <- struct {
+			// 		index  int
+			// 		result string
+			// 	}{
+			// 		index:  idx,
+			// 		result: fmt.Sprintf("站内信发送结果 %v:\n", str),
+			// 	}
+			// }
+			idChan <- struct{}{}
+
+		}(i, input, idChan)
+	}
+	// 上面的步骤结束了，进行收集所有的站内信的id
+
+	<-idChan
+	znxIdList := QueryZnxFunc()
+	for i := 0; i < len(znxIdList); i++ {
+		if str, err := ClickZnxFunc(znxIdList[i]); err != nil {
+			fmt.Println("站内信的启用失败", err)
+			continue
+		} else {
+			fmt.Println("站内信启用成功", str)
+		}
+	}
+
+	// 关闭结果通道
+	go func() {
+		wg.Wait()
+		//close(results)
+	}()
+
+	// 收集结果并按索引排序
+	finalResults := make([]string, len(inputs))
+	// for result := range results {
+	// 	finalResults[result.index] = result.result
+	// }
+
+	return finalResults
 }

@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	payMoneyapi "project/payMoneyApi"
 	"project/userApi/adminUser"
+	memberlist "project/userApi/adminUser/MemberManagement/Memberlist"
 	"project/userApi/adminUser/actingModle/actingFy"
 	"project/utils"
 	"sync"
@@ -19,8 +20,24 @@ import (
 *
 */
 func InvitationCarousel(userName string, moneny int64) {
+	// 总代进行注册登录，并且进行
 	token := GeneralRegiterFunc(userName)
-	// 总代进行注册登录，并且进行点击了邀请转盘的4个礼物盒
+	// fmt.Println("xxxxxxxxxx", token)
+	NewLastWheel(userName, token, moneny)
+	// 这个是进入下一轮的代码
+	// time.Sleep(time.Second * 5)
+	// // 进入下一轮转盘
+	// for i := 0; i <= 1; i++ {
+	// 	fmt.Printf("+++++++++++++++++++++进入邀请转盘的下%v轮+++++++++", i+2)
+	// 	monery, _ := utils.GenerateRandomInt(5000, 15000)
+	// 	NewLastWheel("", token, monery)
+
+	// }
+}
+
+// 进行下一轮只需要点击4个礼盒，和邀请下一级,下一级充值金额
+func NewLastWheel(userName, token string, moneny int64) {
+	// 点击了邀请转盘的4个礼物盒
 	ClickWheelFunc(userName, token)
 	// fmt.Println("点击的礼物盒子状态有问题的状态", bool)
 	// if !bool {
@@ -38,7 +55,7 @@ func InvitationCarousel(userName string, moneny int64) {
 		fmt.Println("邀请码为空", invital)
 		return
 	}
-	fmt.Println("邀请码为", invital)
+	//fmt.Println("邀请码为", invital)
 	RunTaskWhille(invital, moneny, token)
 }
 
@@ -57,9 +74,11 @@ func RunWhille(userAmount string, yqCode string, monenyCount int64) {
 	// fmt.Println("当前的验证码", verifyCode)
 	// 发送注册
 	RegisterFunc(userAmount, verifyCode, yqCode)
-	// 后台登录后进行充值
+	// 后台登录后进行充值和修改密码
 	time.Sleep(time.Second * 2)
 	adminRun(userAmount, monenyCount)
+	time.Sleep(time.Second * 2)
+
 	// 初始化随机数种子
 	// rand.Seed(time.Now().UnixNano())
 	// // 生成一个[0, 1]范围内的随机数
@@ -95,9 +114,10 @@ func RunTaskWhille(yqCode string, monenyCount int64, token string) {
 	var wg sync.WaitGroup
 	// 并发控制，使用通道限制最大并发数为
 	semaphore := make(chan struct{}, 3)
-
+	// 随机生成下级数量
+	number, _ := utils.GenerateRandomInt(2, 6)
 	// 执行 几 次任务
-	for i := 1; i <= 5; i++ {
+	for i := 1; i <= int(number); i++ {
 		wg.Add(1)
 		semaphore <- struct{}{} // 获取一个令牌，控制并发数
 
@@ -141,8 +161,25 @@ func adminRun(userAmount string, moneny int64) {
 	var wg sync.WaitGroup
 	// 通道收集结果
 	payMoneyapi.ManualRecharge(userid, moneny, 0, &wg) // 用户充值
-	// wg.Wait()
-
+	// 后台修改密码
+	memberlist.UpdataPasswordFunc(userid, "qwer1234", &wg) // 修改密码
+	wg.Wait()
+	// 把下级账号写入yaml文件中
+	go utils.AppendToYAML("./44.yaml", userAmount)
+	fmt.Println("后台充值和修改密码成功")
+	// var w sync.WaitGroup
+	// w.Add(1)
+	// go func() {
+	// 	defer w.Done()
+	// 	if token, err := UserloginY1(userAmount, "qwer1234"); err != nil {
+	// 		fmt.Println(err)
+	// 		return
+	// 	} else {
+	// 		monery, _ := utils.GenerateRandomInt(5000, 15000)
+	// 		NewLastWheel("", token, monery)
+	// 	}
+	// }()
+	// w.Wait()
 }
 
 // 使用代理的总代注册 并且记录ip和账号 和随机的账号

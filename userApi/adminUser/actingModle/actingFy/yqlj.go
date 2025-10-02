@@ -174,7 +174,7 @@ func RunInvite() {
 	// 清空 userDB 以确保干净的状态
 	userDB = make(map[string]*User)
 	// 示例：任意层级
-	subordinates := []int{5, 8, 5} // 可替换为任意切片，如 []int{3, 4, 2}
+	subordinates := []int{5, 8, 5, 6, 9} // 可替换为任意切片，如 []int{3, 4, 2}
 	err := RunAAWithBB("ROOT_CODE", subordinates)
 	if err != nil {
 		fmt.Println("操作失败:", err)

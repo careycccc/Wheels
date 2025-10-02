@@ -81,7 +81,6 @@ func PostRequestCofig(payload map[string]interface{}, base_url, api string, args
 	}
 
 	payload["signature"] = signature
-	// fmt.Printf("请求的payload%v\n", payload)
 	//将请求数据转换成json
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -338,7 +337,7 @@ func handlerCode(resp *http.Response) ([]byte, *http.Response, error) {
 		return nil, resp, errString
 	} else if resp.StatusCode >= 400 && resp.StatusCode < 500 {
 		//需要身份验证,或者需要
-		errString := errors.New("需要身份验证,或者需要")
+		errString := errors.New("需要身份验证,或者需要,状态码400-500")
 		return nil, resp, errString
 	} else {
 		err := errors.New("状态码不是200~~或者是服务器错误~~~")

@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 // 商户后台的账号和密码
@@ -203,7 +204,7 @@ type DeskHeaderAstruct2 struct {
 	Authorization interface{}
 }
 
-// url地址
+// url地址ff
 const (
 	PLANT_H5         = "https://sit-plath5-y1.mggametransit.com"
 	WMG_H5           = "https://h5.wmgametransit.com"
@@ -232,7 +233,7 @@ type ProxyInfo struct {
 // AssignSliceToStructMap 将切片的值一一对应赋值到结构体字段并返回 map[string]interface{}
 // structObj结构体对象，sliceObj 切片对象
 // 含有 Authorization
-func AssignSliceToStructMap(structObj interface{}, sliceObj interface{}) (map[string]interface{}, error) {
+func AssignSliceToStructMap(structObj interface{}, sliceObj []interface{}) (map[string]interface{}, error) {
 	// 初始化结果 map
 	result := make(map[string]interface{})
 
@@ -260,6 +261,18 @@ func AssignSliceToStructMap(structObj interface{}, sliceObj interface{}) (map[st
 	for i := 0; i < numFields; i++ {
 		field := structVal.Field(i)
 		fieldName := structType.Field(i).Name
+
+		// 获取 JSON 标签中的字段名
+		jsonTag := structType.Field(i).Tag.Get("json")
+		if jsonTag == "" {
+			jsonTag = fieldName // 如果没有 JSON 标签，使用字段名
+		} else {
+			// 提取 JSON 标签中的字段名（忽略其他选项，如 ",omitempty"）
+			if commaIdx := strings.Index(jsonTag, ","); commaIdx != -1 {
+				jsonTag = jsonTag[:commaIdx]
+			}
+		}
+
 		sliceElement := sliceVal.Index(i)
 
 		// 检查字段是否可设置
@@ -285,7 +298,7 @@ func AssignSliceToStructMap(structObj interface{}, sliceObj interface{}) (map[st
 			// 赋值给字段（任意类型支持）
 			if field.Type().Kind() == reflect.Interface || field.Type() == reflect.TypeOf("") {
 				field.Set(reflect.ValueOf(bearerValue))
-				result[fieldName] = bearerValue
+				result[jsonTag] = bearerValue
 			} else {
 				return nil, fmt.Errorf("Authorization field must be string or interface{} type, got %v", field.Type())
 			}
@@ -293,7 +306,7 @@ func AssignSliceToStructMap(structObj interface{}, sliceObj interface{}) (map[st
 			// 其他字段的赋值
 			if field.Type().Kind() == reflect.Interface || sliceElement.Type().AssignableTo(field.Type()) {
 				field.Set(sliceElement)
-				result[fieldName] = sliceElement.Interface()
+				result[jsonTag] = sliceElement.Interface()
 			} else {
 				return nil, fmt.Errorf("cannot assign slice element type %v to field %s of type %v",
 					sliceElement.Type(), fieldName, field.Type())
@@ -330,34 +343,65 @@ func (iss *GetIssNunmberHeaderConfig) GetIssNunmberHeaderFunc(token, betType str
 func InitStructToMap(strct interface{}, values []interface{}) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 
-	v := reflect.ValueOf(strct).Elem() // 获取结构体值
+	// 检查输入是否为结构体指针
+	v := reflect.ValueOf(strct)
+	if v.Kind() != reflect.Ptr || v.Elem().Kind() != reflect.Struct {
+		return nil, fmt.Errorf("first parameter must be a pointer to a struct")
+	}
+	v = v.Elem()
 	t := v.Type()
 
-	for i := 0; i < v.NumField() && i < len(values); i++ {
-		field := v.Field(i)
+	// 检查切片长度是否足够
+	numFields := v.NumField()
+	if len(values) < numFields {
+		return nil, fmt.Errorf("slice length (%d) is less than struct field count (%d)", len(values), numFields)
+	}
 
-		// 处理字段可设置情况
+	for i := 0; i < numFields; i++ {
+		field := v.Field(i)
+		fieldType := t.Field(i)
+
+		// 跳过不可导出字段
+		if fieldType.PkgPath != "" {
+			continue
+		}
+
+		// 获取 JSON 标签中的字段名
+		tag := fieldType.Tag.Get("json")
+		if tag == "" {
+			tag = fieldType.Name // 如果没有 JSON 标签，使用字段名
+		} else {
+			// 提取 JSON 标签中的字段名（忽略 ",omitempty" 等选项）
+			if commaIdx := strings.Index(tag, ","); commaIdx != -1 {
+				tag = tag[:commaIdx]
+			}
+		}
+
+		// 处理字段赋值
 		if field.CanSet() {
 			val := reflect.ValueOf(values[i])
+			if !val.IsValid() {
+				result[tag] = nil // 切片值无效时赋值为 nil
+				continue
+			}
 
 			// 类型不一致时尝试转换
 			if val.Type().ConvertibleTo(field.Type()) {
 				field.Set(val.Convert(field.Type()))
+			} else {
+				return nil, fmt.Errorf("cannot assign slice element type %v to field %s of type %v",
+					val.Type(), fieldType.Name, field.Type())
 			}
 		}
 
-		// 优先用 JSON tag 作为 map key，否则用字段名
-		tag := t.Field(i).Tag.Get("json")
-		if tag == "" {
-			tag = t.Field(i).Name
-		}
+		// 将字段值添加到结果 map
 		result[tag] = v.Field(i).Interface()
 	}
 
 	return result, nil
 }
 
-// StructToMap 将结构体初始化并将切片值映射到 map   // 可以解决嵌套结构体
+// 可以处理嵌套的结构体
 func StructToMap(structType interface{}, slice []interface{}) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 
@@ -373,53 +417,61 @@ func StructToMap(structType interface{}, slice []interface{}) (map[string]interf
 	t := val.Type()
 	sliceIndex := 0
 
-	// fmt.Printf("Processing struct with %d fields, slice length: %d\n", t.NumField(), len(slice))
-
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		fieldName := field.Name
 		fieldType := field.Type
 
-		// 检查字段是否可导出（PkgPath 非空表示不可导出）
+		// 检查字段是否可导出
 		if field.PkgPath != "" {
 			fmt.Printf("Skipping unexported field %s\n", fieldName)
 			continue
+		}
+
+		// 获取 JSON 标签中的字段名
+		jsonTag := field.Tag.Get("json")
+		if jsonTag == "" {
+			jsonTag = fieldName // 如果没有 JSON 标签，使用字段名
+		} else {
+			// 提取 JSON 标签中的字段名（忽略其他选项，如 ",omitempty"）
+			if commaIdx := strings.Index(jsonTag, ","); commaIdx != -1 {
+				jsonTag = jsonTag[:commaIdx]
+			}
 		}
 
 		// 处理嵌套结构体
 		if fieldType.Kind() == reflect.Struct {
 			if sliceIndex >= len(slice) {
 				fmt.Printf("Slice exhausted at nested field %s, assigning nil\n", fieldName)
-				result[fieldName] = nil
+				result[jsonTag] = nil
 				continue
 			}
 			nestedMap, err := StructToMap(reflect.New(fieldType).Interface(), slice[sliceIndex:])
 			if err != nil {
 				return nil, fmt.Errorf("error in nested struct %s: %v", fieldName, err)
 			}
-			result[fieldName] = nestedMap
+			result[jsonTag] = nestedMap
 			continue
 		}
 
 		// 处理基本类型字段
 		if sliceIndex >= len(slice) {
 			fmt.Printf("Slice exhausted at field %s, assigning nil\n", fieldName)
-			result[fieldName] = nil
+			result[jsonTag] = nil
 			continue
 		}
 
 		sliceVal := reflect.ValueOf(slice[sliceIndex])
 		if !sliceVal.IsValid() {
 			fmt.Printf("Nil slice value at index %d for field %s\n", sliceIndex, fieldName)
-			result[fieldName] = nil
+			result[jsonTag] = nil
 			sliceIndex++
 			continue
 		}
 
 		// 检查类型兼容性
 		if sliceVal.Type().ConvertibleTo(fieldType) {
-			result[fieldName] = sliceVal.Convert(fieldType).Interface()
-			// fmt.Printf("Assigned %v to field %s\n", sliceVal.Interface(), fieldName)
+			result[jsonTag] = sliceVal.Convert(fieldType).Interface()
 		} else {
 			return nil, fmt.Errorf("cannot assign %v to field %s of type %v", sliceVal.Type(), fieldName, fieldType)
 		}

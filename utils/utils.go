@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bufio"
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/binary"
@@ -280,4 +281,51 @@ func GenerateRandomInt(min, max int64) (int64, error) {
 	// 将随机数加上最小值，得到最终的随机数范围在[min, max]之间
 	randomInt.Add(randomInt, big.NewInt(min))
 	return randomInt.Int64(), nil
+}
+
+// AppendToFile 将内容追加写入指定路径的文件
+func AppendToYAML(filePath string, data ...interface{}) error {
+	// 以追加模式打开文件，如果文件不存在则创建
+	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// 将可变参数转换为字符串并写入
+	for _, item := range data {
+		// 使用 fmt.Sprintf 将任意类型转换为字符串
+		content := fmt.Sprintf("%v\n", item)
+		if _, err := file.WriteString(content); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ReadYAMLByLine 逐行读取YAML文件，返回字符串列表
+func ReadYAMLByLine(filePath string) ([]string, error) {
+	// 打开文件
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	// 创建字符串切片存储每一行
+	var lines []string
+	scanner := bufio.NewScanner(file)
+
+	// 逐行读取
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	// 检查扫描过程中是否出现错误
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return lines, nil
 }

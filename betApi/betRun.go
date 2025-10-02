@@ -22,6 +22,7 @@ func marshalToken(jsonStr string) string {
 	var resp Response
 	err := json.Unmarshal([]byte(jsonStr), &resp)
 	if err != nil {
+		fmt.Println("是这里解析出错了吗？？？")
 		log.Fatalf("Error parsing JSON: %v", err)
 		return ""
 	}
@@ -44,7 +45,8 @@ func RandomInt(n int) int {
 
 // 投注
 // 输入用户名
-func BetRun(userName string) {
+func BetRun(userName string) error {
+	time.Sleep(100 * time.Millisecond)
 	num := RandomInt(2)
 	gameCodeList := []string{"WinGo_5M", "TrxWinGo_10M"}
 	gameCode := gameCodeList[num]
@@ -55,7 +57,7 @@ func BetRun(userName string) {
 	amountList := []int{10, 20, 50, 100}
 	amount := amountList[num2]
 	num3 := RandomInt(4)
-	betMultipleList := []int{1, 5, 10, 100}
+	betMultipleList := []int{10, 20, 50, 100}
 	betMultiple := betMultipleList[num3]
 	// fmt.Println(gameCode, betContent, amount, betMultiple)
 	// result, err := deskApi.UserloginY1(userName, "qwer1234") // 前台登录 返回token值，后面的请求都需要这个token
@@ -64,31 +66,33 @@ func BetRun(userName string) {
 	// }
 	//调用实例
 
-	result, err := request.RetryOperationWithResult(request.Func2WithResult(deskApi.UserloginY1), userName, "qwer1234")
+	token, err := request.RetryOperationWithResult(request.Func2WithResult(deskApi.UserloginY1), userName, "qwer1234")
 	if err != nil {
-		fmt.Printf("UserloginY1 failed: %v\n", err)
-		return
+		//fmt.Printf("UserloginY1 failed: %v\n", err)
+		return fmt.Errorf("UserloginY1 failed: %v\n", err)
 	}
-	token := marshalToken(result.(string))
-	if token == "" {
-		fmt.Println("token没有获取到")
-		return
-	}
+	//fmt.Println("投注重试的结果", result)
+	// token := marshalToken(result.(string))
+	// if token == "" {
+	// 	fmt.Println("token没有获取到")
+	// 	return fmt.Errorf("token没有获取到")
+	// }
 	// if len(result) > 0 {
 	// 	winGo.ThirdGameFunc(result, gameCode)
 	// }
-	BalanceToken, balance := winGo.GetBalanceInfoFunc(token, gameCode)
+	BalanceToken, balance := winGo.GetBalanceInfoFunc(token.(string), gameCode)
 	if balance == 0.0 {
-		fmt.Println("------------------------余额为0,不可以投注------------------------")
-		return
+		//fmt.Println("------------------------余额为0,不可以投注------------------------")
+		return fmt.Errorf("------------------------余额为0,不可以投注------------------------")
 	}
 	// 是否可以投注
 	isBet, issNumber := IsBet("", gameCode)
-	if isBet && result != "-1" {
+	if isBet && len(token.(string)) > 0 {
 		// 可以投注
 		BetWingo(gameCode, amount, betMultiple, betContent, issNumber, BalanceToken, userName)
 	} else {
-		fmt.Println("不可以投注")
-		return
+		//fmt.Println("不可以投注")
+		return fmt.Errorf("不可以投注")
 	}
+	return nil
 }
